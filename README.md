@@ -9,10 +9,9 @@ The SDK uses CocoaPods (http://cocoapods.org/) as library dependency manager. In
     sudo gem install cocoapods
     pod setup
 
-The best way to add the OpenWebRTC SDK to your application project is to add the OpenWebRTC dependency to your Podfile::
+The best way to add the OpenWebRTC SDK to your application project is to add the OpenWebRTC dependency to your Podfile:
 
     pod 'OpenWebRTC'
-
 
 ## Overview
 
