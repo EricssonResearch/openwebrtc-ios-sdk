@@ -30,7 +30,7 @@
 
 @implementation OpenWebRTCVideoView
 
-+ (Class) layerClass
++ (Class)layerClass
 {
     return [CAEAGLLayer class];
 }
