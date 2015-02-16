@@ -4,7 +4,7 @@ SDK for adding OpenWebRTC to your iOS apps using CocoaPods
 
 ## Installation
 
-The SDK uses CocoaPods (http://cocoapods.org/) as library dependency manager. In order to set this up:
+The SDK uses [CocoaPods](http://cocoapods.org) as library dependency manager. In order to set this up:
 
     sudo gem install cocoapods
     pod setup
