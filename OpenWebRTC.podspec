@@ -4,8 +4,8 @@ Pod::Spec.new do |s|
   s.summary      = "SDK for adding WebRTC to your app through OpenWebRTC"
   s.homepage     = "http://www.openwebrtc.io"
   s.license      = { :type => "BSD-2", :file => "LICENSE" }
-  s.author       = { "Ericsson Research" => "labs@ericsson.com" }
-  s.platform     = :ios, "8.0"
+  s.author       = { "Ericsson AB" => "labs@ericsson.com" }
+  s.platform     = :ios, "7.1"
   s.source       = {
     :git => "https://github.com/EricssonResearch/openwebrtc-ios-sdk.git",
     :tag => "0.1"
