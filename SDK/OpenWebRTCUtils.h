@@ -1,5 +1,5 @@
 //
-//  OpenWebRTC.h
+//  OpenWebRTCUtils.h
 //
 //  Copyright (c) 2015, Ericsson AB.
 //  All rights reserved.
@@ -28,5 +28,9 @@
 
 #import <UIKit/UIKit.h>
 
-#import <OpenWebRTC/OpenWebRTCVideoView.h>
-#import <OpenWebRTC/OpenWebRTCUtils.h>
+@interface OpenWebRTCUtils : NSObject
+
++ (NSDictionary *)parseSDPFromString:(NSString *)sdpString;
++ (NSString *)generateSDPFromObject:(NSDictionary *)sdpObject;
+
+@end
