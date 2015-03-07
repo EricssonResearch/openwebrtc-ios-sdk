@@ -11,8 +11,10 @@ Pod::Spec.new do |s|
     :tag => "0.1"
   }
   s.source_files = "SDK/*.{h,m}"
+  s.resources = "Resources/*.js"
+  #https://github.com/EricssonResearch/openwebrtc/blob/master/bridge/client/sdp.js
   
-  # s.framework  = "SomeFramework"
+  s.framework  = "JavaScriptCore"
   # s.frameworks = "SomeFramework", "AnotherFramework"
 
   # s.library   = "iconv"
