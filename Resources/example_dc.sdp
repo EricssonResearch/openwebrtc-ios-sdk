@@ -1,0 +1,15 @@
+v=0
+o=- 128254989039880302 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=msid-semantic: WMS
+m=application 57049 DTLS/SCTP 5000
+c=IN IP4 192.168.1.86
+a=candidate:3681649477 1 udp 2122260223 192.168.1.86 57049 typ host generation 0
+a=ice-ufrag:9I+z5/4mb+Y00teq
+a=ice-pwd:2gMDyNA8fu2WOCnIyyU1gkur
+a=ice-options:google-ice
+a=fingerprint:sha-256 1A:3C:A9:43:47:14:D1:12:E3:6E:C0:D5:19:14:EE:57:F6:FC:F9:1F:18:64:65:79:8B:AA:88:EB:3E:1A:B6:69
+a=setup:actpass
+a=mid:data
+a=sctpmap:5000 webrtc-datachannel 1024

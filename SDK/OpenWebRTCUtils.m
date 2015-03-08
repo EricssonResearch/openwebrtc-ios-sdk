@@ -29,12 +29,11 @@
 #import "OpenWebRTCUtils.h"
 #import <JavaScriptCore/JavaScriptCore.h>
 
-#define kJavaScriptFunctionParse @"SDP.parse"
-#define kJavaScriptFunctionGenerate @"SDP.generate"
-
 static JSContext *_context;
 
 @implementation OpenWebRTCUtils
+
+#pragma mark - Internal methods
 
 + (JSContext *)context
 {
@@ -42,32 +41,67 @@ static JSContext *_context;
         if (_context == nil) {
             _context = [[JSContext alloc] init];
 
-            NSURL *fileURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"sdp" ofType:@"js"]];
-            NSError *error;
-            NSString *js = [NSString stringWithContentsOfURL:fileURL encoding:NSUTF8StringEncoding error:&error];
-            if (js && !error) {
-                [_context evaluateScript:js];
+            NSString *path = [[NSBundle mainBundle] pathForResource:@"sdp" ofType:@"js"];
+            if (path) {
+                NSError *error;
+                NSURL *fileURL = [NSURL fileURLWithPath:path];
+                NSString *js = [NSString stringWithContentsOfURL:fileURL encoding:NSUTF8StringEncoding error:&error];
+                if (js && !error) {
+                    [_context evaluateScript:js];
+                } else {
+                    NSLog(@"[OpenWebRTCUtils] WARNING! Could not open sdp.js");
+                }
             } else {
-                NSLog(@"[OpenWebRTCUtils] WARNING! Could not open sdp.js");
+                NSLog(@"[OpenWebRTCUtils] WARNING! Could not find sdp.js");
             }
+
+            _context.exceptionHandler = ^(JSContext *context, JSValue *exception) {
+                NSLog(@"[OpenWebRTCUtils] JavaScript Error: %@", exception);
+            };
         }
     }
     return _context;
 }
 
+#pragma mark Public methods
+
 + (NSDictionary *)parseSDPFromString:(NSString *)sdpString
 {
-    JSValue *parseFunction = [OpenWebRTCUtils context][kJavaScriptFunctionParse];
+    JSValue *parseFunction = [[[OpenWebRTCUtils context] objectForKeyedSubscript:@"SDP"] objectForKeyedSubscript:@"parse"];
     JSValue *result = [parseFunction callWithArguments:@[sdpString]];
     return [result toDictionary];
 }
 
 + (NSString *)generateSDPFromObject:(NSDictionary *)sdpObject
 {
-    JSValue *generateFunction = [OpenWebRTCUtils context][kJavaScriptFunctionParse];
+    JSValue *generateFunction = [[[OpenWebRTCUtils context] objectForKeyedSubscript:@"SDP"] objectForKeyedSubscript:@"generate"];
     JSValue *result = [generateFunction callWithArguments:@[sdpObject]];
     return [result toString];
 }
 
+#pragma mark - Test
+
++ (void)test_sdp_parsing
+{
+    NSArray *tests = @[@"example_dc", @"example_ff_remote"];
+
+    for (NSString *file in tests) {
+        NSString *path = [[NSBundle mainBundle] pathForResource:file ofType:@"sdp"];
+        if (path) {
+            NSError *error = nil;
+            NSString *js = [NSString stringWithContentsOfURL:[NSURL fileURLWithPath:path]
+                                                    encoding:NSUTF8StringEncoding
+                                                       error:&error];
+            if (js && !error) {
+                NSDictionary *sdp = [OpenWebRTCUtils parseSDPFromString:js];
+                NSLog(@"::::::::::::::::: SDP: %@", sdp);
+            } else {
+                NSLog(@"[OpenWebRTCUtils] WARNING! Could not open %@.sdp", file);
+            }
+        } else {
+            NSLog(@"[OpenWebRTCUtils] WARNING! Could not find %@.sdp", file);
+        }
+    }
+}
 
 @end
