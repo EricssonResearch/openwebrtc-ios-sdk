@@ -27,7 +27,8 @@
 //
 
 #import "OpenWebRTCUtils.h"
-#import <JavaScriptCore/JavaScriptCore.h>
+
+@import JavaScriptCore;
 
 static JSContext *_context;
 

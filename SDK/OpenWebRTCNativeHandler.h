@@ -1,5 +1,5 @@
 //
-//  OpenWebRTC.h
+//  OpenWebRTCNativeHandler.h
 //
 //  Copyright (c) 2015, Ericsson AB.
 //  All rights reserved.
@@ -26,8 +26,31 @@
 //  OF SUCH DAMAGE.
 //
 
-#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
+#import "OpenWebRTCVideoView.h"
 
-#import <OpenWebRTC-SDK/OpenWebRTCVideoView.h>
-#import <OpenWebRTC-SDK/OpenWebRTCUtils.h>
-#import <OpenWebRTC-SDK/OpenWebRTCNativeHandler.h>
+#include <owr/owr_local.h>
+#include <owr/owr_transport_agent.h>
+
+@protocol OpenWebRTCNativeHandlerDelegate <NSObject>
+
+- (void)answerGenerated:(NSString *)answer;
+- (void)addHelperServersForTransportAgent:(OwrTransportAgent *)transportAgent;
+
+@end
+
+@interface OpenWebRTCNativeHandler : NSObject
+
+@property (nonatomic, weak) id <OpenWebRTCNativeHandlerDelegate> delegate;
+
+- (instancetype)init;
+
+- (void)setSelfView:(OpenWebRTCVideoView *)selfView;
+- (void)setRemoteView:(OpenWebRTCVideoView *)remoteView;
+
+- (void)startGetCaptureSources:(OwrMediaType)types;
+
+- (void)handleOfferReceived:(NSString *)offer;
+- (void)handleRemoteCandidateReceived:(NSString *)candidate;
+
+@end
