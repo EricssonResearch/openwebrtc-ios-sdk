@@ -28,6 +28,7 @@
 
 #import "OpenWebRTCNativeHandler.h"
 
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -785,7 +786,6 @@ static void send_eventsource_request(const gchar *url)
 
  */
 //static void got_local_sources(GList *sources, gchar *url)
-
 static void got_local_sources(GList *sources)
 {
     NSLog(@"got_local_sources");
@@ -811,6 +811,8 @@ static void got_local_sources(GList *sources)
 
         g_object_get(source, "name", &name, "type", &source_type, "media-type", &media_type, NULL);
 
+        /* We ref the sources because we want them to stay around. On iOS they will never be
+         * unplugged, I expect, but it's safer this way. */
         g_object_ref(source);
 
         g_print("[%s/%s] %s\n", media_type == OWR_MEDIA_TYPE_AUDIO ? "audio" : "video",
@@ -830,6 +832,5 @@ static void got_local_sources(GList *sources)
         sources = sources->next;
     }
 }
-
 
 @end
