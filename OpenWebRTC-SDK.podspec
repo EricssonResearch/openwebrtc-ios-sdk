@@ -13,7 +13,7 @@ Pod::Spec.new do |s|
   s.source_files = "SDK/*.{h,m}"
   s.resources = "Resources/**"
   #s.resource = { :http => "https://github.com/EricssonResearch/openwebrtc/blob/master/bridge/client/sdp.js" }
-  s.frameworks = "JavaScriptCore", "VideoToolbox", "AssetsLibrary", "CoreVideo", "OpenWebRTC"
-  s.libraries = "c++", "iconv", "resolve", "z"
+  s.frameworks = "JavaScriptCore", "VideoToolbox", "AssetsLibrary", "CoreVideo", "CoreAudio", "CoreGraphics", "OpenGLES", "OpenWebRTC"
+  #s.libraries = "c++", "iconv", "resolve", "z"
   s.requires_arc = true
 end
