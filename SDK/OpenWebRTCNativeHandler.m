@@ -188,10 +188,8 @@ static OpenWebRTCNativeHandler *staticSelf;
 
         g_signal_connect(media_session, "on-incoming-source", G_CALLBACK(got_remote_source), NULL);
         g_signal_connect(media_session, "on-new-candidate", G_CALLBACK(got_candidate), NULL);
-        g_signal_connect(media_session, "on-candidate-gathering-done",
-                         G_CALLBACK(candidate_gathering_done), NULL);
-        g_signal_connect(media_session, "notify::dtls-certificate",
-                         G_CALLBACK(got_dtls_certificate), NULL);
+        g_signal_connect(media_session, "on-candidate-gathering-done", G_CALLBACK(candidate_gathering_done), NULL);
+        g_signal_connect(media_session, "notify::dtls-certificate", G_CALLBACK(got_dtls_certificate), NULL);
 
         for (list_item = local_sources; list_item; list_item = list_item->next) {
             source = OWR_MEDIA_SOURCE(list_item->data);
@@ -262,17 +260,48 @@ static OpenWebRTCNativeHandler *staticSelf;
     return remote_candidate;
 }
 
-- (void)handleRemoteCandidateReceived:(NSString *)candidate
+- (void)handleRemoteCandidateReceived:(NSDictionary *)candidate
 {
-    NSString *str = [NSString stringWithFormat:@"m=application 0 NONE\r\na=%@\r\n", candidate];
-    NSDictionary *mockSDP = [OpenWebRTCUtils parseSDPFromString:str];
+    NSString *candidateString = [NSString stringWithFormat:@"m=application 0 NONE\r\na=%@\r\n", candidate[@"candidate"]];
+    NSDictionary *mockSDP = [OpenWebRTCUtils parseSDPFromString:candidateString];
+
+    /*
+     Received DATA from peer: {"candidate":{"sdpMLineIndex":0,"sdpMid":"video","candidate":"candidate:4000241536 2 udp 2122260223 129.192.20.149 56087 typ host generation 0","candidateDescription":{"foundation":"4000241536","componentId":2,"transport":"UDP","priority":2122260223,"address":"129.192.20.149","port":56087,"type":"host"}}}
+     */
 
     NSDictionary *mediaDescription = mockSDP[@"mediaDescriptions"][0];
-
     if (mediaDescription && mediaDescription[@"ice"]) {
         for (NSDictionary *candidateObject in mediaDescription[@"ice"][@"candidates"]) {
-            OwrCandidate *owr_candidate = [OpenWebRTCNativeHandler candidateFromObject:candidateObject];
-            //got_candidate(, <#OwrCandidate *candidate#>, <#gpointer user_data#>)
+            gint index;
+            GList *media_sessions;
+            OwrMediaSession *media_session;
+            OwrCandidate *remote_candidate;
+            OwrComponentType component_type;
+            gboolean rtcp_mux;
+            gchar *ice_ufrag, *ice_password;
+
+            index = [candidate[@"sdpMLineIndex"] intValue];
+
+            media_sessions = g_object_get_data(G_OBJECT(transport_agent), "media-sessions");
+            media_session = OWR_MEDIA_SESSION(g_list_nth_data(media_sessions, index));
+
+            if (!media_session) {
+                continue;
+            }
+
+            NSDictionary *candidateDescription = candidate[@"candidateDescription"];
+            remote_candidate = [OpenWebRTCNativeHandler candidateFromObject:candidateDescription];
+
+            ice_ufrag = g_object_get_data(G_OBJECT(media_session), "remote-ice-ufrag");
+            ice_password = g_object_get_data(G_OBJECT(media_session), "remote-ice-password");
+            g_object_set(remote_candidate, "ufrag", ice_ufrag, "password", ice_password, NULL);
+            g_object_get(media_session, "rtcp-mux", &rtcp_mux, NULL);
+            g_object_get(remote_candidate, "component-type", &component_type, NULL);
+            if (!rtcp_mux || component_type != OWR_COMPONENT_TYPE_RTCP) {
+                owr_session_add_remote_candidate(OWR_SESSION(media_session), remote_candidate);
+            }
+
+            NSLog(@"[OpenWebRTCNativeHandler] Handled candidate: %@", candidate);
         }
     } else {
         NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to parse ICE candidate: %@", candidate);

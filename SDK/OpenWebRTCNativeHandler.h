@@ -51,6 +51,6 @@
 - (void)startGetCaptureSources:(OwrMediaType)types;
 
 - (void)handleOfferReceived:(NSString *)offer;
-- (void)handleRemoteCandidateReceived:(NSString *)candidate;
+- (void)handleRemoteCandidateReceived:(NSDictionary *)candidate;
 
 @end
