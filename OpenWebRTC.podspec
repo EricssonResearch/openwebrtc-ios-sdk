@@ -7,12 +7,11 @@ Pod::Spec.new do |s|
   s.author       = { "Ericsson AB" => "labs@ericsson.com" }
   s.source       = { :path => "OpenWebRTC.framework" }
   s.platform     = :ios, "7.1"
-  s.frameworks   = "VideoToolbox", "AssetsLibrary"
-  s.library      = "z"
   s.preserve_paths = "OpenWebRTC.framework"
   s.public_header_files = "OpenWebRTC.framework/**/*.h"
   s.vendored_frameworks = "OpenWebRTC.framework"
   s.header_mappings_dir = "OpenWebRTC.framework"
+  s.frameworks = "JavaScriptCore", "VideoToolbox", "AssetsLibrary", "CoreVideo", "CoreAudio", "CoreGraphics", "OpenGLES", "OpenWebRTC"
   #s.libraries = "c++", "iconv", "resolve", "z"
   s.requires_arc = false
 end

@@ -27,7 +27,7 @@
 //
 
 #import "OpenWebRTCNativeHandler.h"
-
+#import "OpenWebRTCUtils.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -43,8 +43,6 @@
 #include "owr_window_registry.h"
 
 #include <gio/gio.h>
-//#include <json-glib/json-glib.h>
-//#include <libsoup/soup.h>
 #include <string.h>
 
 #define SELF_VIEW_TAG "self-view"
@@ -77,12 +75,208 @@ static OpenWebRTCNativeHandler *staticSelf;
 
 - (void)handleOfferReceived:(NSString *)offer
 {
+    NSDictionary *sdp = [OpenWebRTCUtils parseSDPFromString:offer];
+    NSLog(@"Parsed Offer SDP: %@", sdp);
 
+    const gchar *mtype;
+    OwrMediaType media_type = OWR_MEDIA_TYPE_UNKNOWN;
+    gboolean rtcp_mux;
+    OwrMediaSession *media_session;
+    GObject *session;
+    gint64 payload_type, clock_rate, channels = 0;
+    const gchar *encoding_name;
+    gboolean ccm_fir = FALSE, nack_pli = FALSE;
+    OwrCodecType codec_type;
+    OwrCandidate *remote_candidate;
+    OwrComponentType component_type;
+    const gchar *ice_ufrag, *ice_password;
+    OwrPayload *send_payload, *receive_payload;
+    GList *list_item;
+    OwrMediaSource *source;
+    OwrMediaType source_media_type;
+    GList *media_sessions;
+
+    for (NSDictionary *mediaDescription in sdp[@"mediaDescriptions"]) {
+        media_session = owr_media_session_new(TRUE);
+        session = G_OBJECT(media_session);
+
+        mtype = [mediaDescription[@"type"] UTF8String];
+        g_object_set_data(session, "media-type", g_strdup(mtype));
+
+        rtcp_mux = [mediaDescription[@"rtcp"][@"mux"] boolValue];
+        g_object_set(media_session, "rtcp-mux", rtcp_mux, NULL);
+
+        NSArray *payloads = mediaDescription[@"payloads"];
+        codec_type = OWR_CODEC_TYPE_NONE;
+        for (int j = 0; j < [payloads count] && codec_type == OWR_CODEC_TYPE_NONE; j++) {
+            NSDictionary *payload = payloads[j];
+
+            encoding_name = [payload[@"encodingName"] UTF8String];
+            payload_type = [payload[@"type"] intValue];
+            clock_rate = [payload[@"clockRate"] intValue];
+
+            send_payload = receive_payload = NULL;
+            if (!g_strcmp0(mtype, "audio")) {
+                media_type = OWR_MEDIA_TYPE_AUDIO;
+                if (!g_strcmp0(encoding_name, "PCMA"))
+                    codec_type = OWR_CODEC_TYPE_PCMA;
+                else if (!g_strcmp0(encoding_name, "PCMU"))
+                    codec_type = OWR_CODEC_TYPE_PCMU;
+                else if (!g_strcmp0(encoding_name, "OPUS") || !g_strcmp0(encoding_name, "opus"))
+                    codec_type = OWR_CODEC_TYPE_OPUS;
+                else
+                    continue;
+
+                channels = [payload[@"channels"] intValue];
+
+                send_payload = owr_audio_payload_new(codec_type, payload_type, clock_rate,
+                                                     channels);
+                receive_payload = owr_audio_payload_new(codec_type, payload_type, clock_rate,
+                                                        channels);
+            } else if (!g_strcmp0(mtype, "video")) {
+                media_type = OWR_MEDIA_TYPE_VIDEO;
+                if (!g_strcmp0(encoding_name, "H264"))
+                    codec_type = OWR_CODEC_TYPE_H264;
+                else if (!g_strcmp0(encoding_name, "VP8"))
+                    codec_type = OWR_CODEC_TYPE_VP8;
+                else
+                    continue;
+
+                ccm_fir = [payload[@"ccmfir"] boolValue];
+                nack_pli = [payload[@"nackpli"] boolValue];
+
+                send_payload = owr_video_payload_new(codec_type, payload_type, clock_rate,
+                                                     ccm_fir, nack_pli);
+                receive_payload = owr_video_payload_new(codec_type, payload_type, clock_rate,
+                                                        ccm_fir, nack_pli);
+            } else
+                g_warn_if_reached();
+
+            if (send_payload && receive_payload) {
+                g_object_set_data(session, "encoding-name", g_strdup(encoding_name));
+                g_object_set_data(session, "payload-type", GUINT_TO_POINTER(payload_type));
+                g_object_set_data(session, "clock-rate", GUINT_TO_POINTER(clock_rate));
+                if (OWR_IS_AUDIO_PAYLOAD(send_payload))
+                    g_object_set_data(session, "channels", GUINT_TO_POINTER(channels));
+                else if (OWR_IS_VIDEO_PAYLOAD(send_payload)) {
+                    g_object_set_data(session, "ccm-fir", GUINT_TO_POINTER(ccm_fir));
+                    g_object_set_data(session, "nack-pli", GUINT_TO_POINTER(nack_pli));
+                } else
+                    g_warn_if_reached();
+
+                owr_media_session_add_receive_payload(media_session, receive_payload);
+                owr_media_session_set_send_payload(media_session, send_payload);
+            }
+        }
+        ice_ufrag = [mediaDescription[@"ice"][@"ufrag"] UTF8String];
+        g_object_set_data_full(session, "remote-ice-ufrag", g_strdup(ice_ufrag), g_free);
+        ice_password = [mediaDescription[@"ice"][@"password"] UTF8String];
+        g_object_set_data_full(session, "remote-ice-password", g_strdup(ice_password), g_free);
+
+        NSArray *candidates = mediaDescription[@"candidates"];
+        if (candidates) {
+            for (NSDictionary *candidate in candidates) {
+                remote_candidate = [OpenWebRTCNativeHandler candidateFromObject:candidate];
+                g_object_set(remote_candidate, "ufrag", ice_ufrag, "password", ice_password, NULL);
+                g_object_get(remote_candidate, "component-type", &component_type, NULL);
+                if (!rtcp_mux || component_type != OWR_COMPONENT_TYPE_RTCP)
+                    owr_session_add_remote_candidate(OWR_SESSION(media_session), remote_candidate);
+                else
+                    g_object_unref(remote_candidate);
+            }
+        }
+
+        g_signal_connect(media_session, "on-incoming-source", G_CALLBACK(got_remote_source), NULL);
+        g_signal_connect(media_session, "on-new-candidate", G_CALLBACK(got_candidate), NULL);
+        g_signal_connect(media_session, "on-candidate-gathering-done",
+                         G_CALLBACK(candidate_gathering_done), NULL);
+        g_signal_connect(media_session, "notify::dtls-certificate",
+                         G_CALLBACK(got_dtls_certificate), NULL);
+
+        for (list_item = local_sources; list_item; list_item = list_item->next) {
+            source = OWR_MEDIA_SOURCE(list_item->data);
+            g_object_get(source, "media-type", &source_media_type, NULL);
+            if (source_media_type == media_type) {
+                local_sources = g_list_remove(local_sources, source);
+                owr_media_session_set_send_source(media_session, source);
+                break;
+            }
+        }
+        media_sessions = g_object_get_data(G_OBJECT(transport_agent), "media-sessions");
+        media_sessions = g_list_append(media_sessions, media_session);
+        g_object_set_data(G_OBJECT(transport_agent), "media-sessions", media_sessions);
+        owr_transport_agent_add_session(transport_agent, OWR_SESSION(media_session));
+    }
+}
+
++ (OwrCandidate *)candidateFromObject:(NSDictionary *)candidate
+{
+    OwrCandidate *remote_candidate;
+    OwrCandidateType candidate_type;
+    OwrComponentType component_type;
+    OwrTransportType transport_type;
+    const gchar *cand_type, *foundation, *transport, *address, *tcp_type;
+    gint priority, port;
+
+    cand_type = [candidate[@"type"] UTF8String];
+
+    if (!g_strcmp0(cand_type, "host"))
+        candidate_type = OWR_CANDIDATE_TYPE_HOST;
+    else if (!g_strcmp0(cand_type, "srflx"))
+        candidate_type = OWR_CANDIDATE_TYPE_SERVER_REFLEXIVE;
+    else
+        candidate_type = OWR_CANDIDATE_TYPE_RELAY;
+
+    component_type = (OwrComponentType)[candidate[@"componentId"] intValue];
+    remote_candidate = owr_candidate_new(candidate_type, component_type);
+
+    foundation = [candidate[@"foundation"] UTF8String];
+    g_object_set(remote_candidate, "foundation", foundation, NULL);
+
+    transport = [candidate[@"transport"] UTF8String];
+    if (!g_strcmp0(transport, "UDP"))
+        transport_type = OWR_TRANSPORT_TYPE_UDP;
+    else
+        transport_type = OWR_TRANSPORT_TYPE_TCP_ACTIVE;
+
+    if (transport_type != OWR_TRANSPORT_TYPE_UDP) {
+        tcp_type = [candidate[@"tcpType"] UTF8String];
+        if (!g_strcmp0(tcp_type, "active"))
+            transport_type = OWR_TRANSPORT_TYPE_TCP_ACTIVE;
+        else if (!g_strcmp0(tcp_type, "passive"))
+            transport_type = OWR_TRANSPORT_TYPE_TCP_PASSIVE;
+        else
+            transport_type = OWR_TRANSPORT_TYPE_TCP_SO;
+    }
+    g_object_set(remote_candidate, "transport-type", transport_type, NULL);
+
+    address = [candidate[@"address"] UTF8String];
+    g_object_set(remote_candidate, "address", address, NULL);
+
+    port = [candidate[@"port"] intValue];
+    g_object_set(remote_candidate, "port", port, NULL);
+
+    priority = [candidate[@"priority"] intValue];
+    g_object_set(remote_candidate, "priority", priority, NULL);
+
+    return remote_candidate;
 }
 
 - (void)handleRemoteCandidateReceived:(NSString *)candidate
 {
+    NSString *str = [NSString stringWithFormat:@"m=application 0 NONE\r\na=%@\r\n", candidate];
+    NSDictionary *mockSDP = [OpenWebRTCUtils parseSDPFromString:str];
 
+    NSDictionary *mediaDescription = mockSDP[@"mediaDescriptions"][0];
+
+    if (mediaDescription && mediaDescription[@"ice"]) {
+        for (NSDictionary *candidateObject in mediaDescription[@"ice"][@"candidates"]) {
+            OwrCandidate *owr_candidate = [OpenWebRTCNativeHandler candidateFromObject:candidateObject];
+            //got_candidate(, <#OwrCandidate *candidate#>, <#gpointer user_data#>)
+        }
+    } else {
+        NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to parse ICE candidate: %@", candidate);
+    }
 }
 
 - (void)startGetCaptureSources:(OwrMediaType)types
@@ -94,13 +288,9 @@ static OpenWebRTCNativeHandler *staticSelf;
 
 static GList *local_sources, *renderers;
 static OwrTransportAgent *transport_agent;
-//static gchar *session_id, *peer_id;
-static gchar *peer_id;
-//static guint client_id;
 static gchar *candidate_types[] = { "host", "srflx", "relay", NULL };
 static gchar *tcp_types[] = { "", "active", "passive", "so", NULL };
 
-static void read_eventstream_line(GDataInputStream *input_stream, gpointer user_data);
 static void got_local_sources(GList *sources);
 
 static void got_remote_source(OwrMediaSession *media_session, OwrMediaSource *source,
@@ -141,6 +331,79 @@ static gboolean can_send_answer()
     }
 
     return TRUE;
+}
+
+static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpointer user_data)
+{
+    GList *local_candidates;
+    g_return_if_fail(!user_data);
+
+    local_candidates = g_object_get_data(media_session, "local-candidates");
+    local_candidates = g_list_append(local_candidates, candidate);
+    g_object_set_data(media_session, "local-candidates", local_candidates);
+}
+
+static void candidate_gathering_done(GObject *media_session, gpointer user_data)
+{
+    g_return_if_fail(!user_data);
+    g_object_set_data(media_session, "gathering-done", GUINT_TO_POINTER(1));
+
+    NSLog(@"############################# candidate_gathering_done -> should send answer!");
+
+    if (can_send_answer())
+        send_answer();
+}
+
+static void got_dtls_certificate(GObject *media_session, GParamSpec *pspec, gpointer user_data)
+{
+    guint i;
+    gchar *pem, *line;
+    guchar *der, *tmp;
+    gchar **lines;
+    gint state = 0;
+    guint save = 0;
+    gsize der_length = 0;
+    GChecksum *checksum;
+    guint8 *digest;
+    gsize digest_length;
+    GString *fingerprint;
+
+    g_return_if_fail(G_IS_PARAM_SPEC(pspec));
+    g_return_if_fail(!user_data);
+
+    g_object_get(media_session, "dtls-certificate", &pem, NULL);
+    der = tmp = g_new0(guchar, (strlen(pem) / 4) * 3 + 3);
+    lines = g_strsplit(pem, "\n", 0);
+    for (i = 0, line = lines[i]; line; line = lines[++i]) {
+        if (line[0] && !g_str_has_prefix(line, "-----"))
+            tmp += g_base64_decode_step(line, strlen(line), tmp, &state, &save);
+    }
+    der_length = tmp - der;
+    checksum = g_checksum_new(G_CHECKSUM_SHA256);
+    digest_length = g_checksum_type_get_length(G_CHECKSUM_SHA256);
+    digest = g_new(guint8, digest_length);
+    g_checksum_update(checksum, der, der_length);
+    g_checksum_get_digest(checksum, digest, &digest_length);
+    fingerprint = g_string_new(NULL);
+    for (i = 0; i < digest_length; i++) {
+        if (i)
+            g_string_append(fingerprint, ":");
+        g_string_append_printf(fingerprint, "%02X", digest[i]);
+    }
+    g_object_set_data(media_session, "fingerprint", g_string_free(fingerprint, FALSE));
+
+    g_free(digest);
+    g_checksum_free(checksum);
+    g_free(der);
+    g_strfreev(lines);
+
+    if (can_send_answer())
+        send_answer();
+}
+
+static void send_answer()
+{
+    NSLog(@"################################# should send answer!");
 }
 
 /*
