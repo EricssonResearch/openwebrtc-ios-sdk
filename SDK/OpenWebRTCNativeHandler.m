@@ -286,6 +286,7 @@ static OpenWebRTCNativeHandler *staticSelf;
             media_session = OWR_MEDIA_SESSION(g_list_nth_data(media_sessions, index));
 
             if (!media_session) {
+                NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to find media_session for candidate: %@", candidate);
                 continue;
             }
 
@@ -430,11 +431,6 @@ static void got_dtls_certificate(GObject *media_session, GParamSpec *pspec, gpoi
         send_answer();
 }
 
-static void send_answer()
-{
-    NSLog(@"################################# should send answer!");
-}
-
 /*
 static void answer_sent(SoupSession *soup_session, GAsyncResult *result, gpointer user_data)
 {
@@ -448,12 +444,9 @@ static void answer_sent(SoupSession *soup_session, GAsyncResult *result, gpointe
         g_object_unref(input_stream);
 }
  */
-/*
+
 static void send_answer()
 {
-    JsonBuilder *builder;
-    JsonGenerator *generator;
-    JsonNode *root;
     GList *media_sessions, *item;
     GObject *media_session;
     gchar *media_type, *encoding_name;
@@ -464,12 +457,10 @@ static void send_answer()
     OwrCandidate *candidate;
     gchar *ice_ufrag, *ice_password;
     gchar *fingerprint;
-    gchar *json;
-    gsize json_length;
-    SoupSession *soup_session;
-    SoupMessage *soup_message;
-    //gchar *url;
+    //gchar *json;
+    //gsize json_length;
 
+    /*
     builder = json_builder_new();
     generator = json_generator_new();
     json_builder_begin_object(builder);
@@ -479,67 +470,98 @@ static void send_answer()
     json_builder_begin_object(builder);
     json_builder_set_member_name(builder, "mediaDescriptions");
     json_builder_begin_array(builder);
+     */
+
+    NSMutableDictionary *sdp = [NSMutableDictionary dictionary];//WithObject:@"answer" forKey:@"type"];
 
     media_sessions = g_object_get_data(G_OBJECT(transport_agent), "media-sessions");
+
+    NSMutableArray *mediaDescriptions = [NSMutableArray array];
+
     for (item = media_sessions; item; item = item->next) {
         media_session = G_OBJECT(item->data);
-        json_builder_begin_object(builder);
+        //json_builder_begin_object(builder);
 
-        json_builder_set_member_name(builder, "type");
+        NSMutableDictionary *mediaDescription = [NSMutableDictionary dictionary];
+        //json_builder_set_member_name(builder, "type");
         media_type = g_object_steal_data(media_session, "media-type");
-        json_builder_add_string_value(builder, media_type);
+        //json_builder_add_string_value(builder, media_type);
+        mediaDescription[@"type"] = [NSString stringWithUTF8String:media_type];
 
+        /*
         json_builder_set_member_name(builder, "rtcp");
         json_builder_begin_object(builder);
         json_builder_set_member_name(builder, "mux");
         g_object_get(media_session, "rtcp-mux", &rtcp_mux, NULL);
         json_builder_add_boolean_value(builder, rtcp_mux);
         json_builder_end_object(builder);
+         */
+        g_object_get(media_session, "rtcp-mux", &rtcp_mux, NULL);
+        mediaDescription[@"rtcp"] = @{@"mux": [NSNumber numberWithBool:rtcp_mux]};
 
-        json_builder_set_member_name(builder, "payloads");
-        json_builder_begin_array(builder);
+        //json_builder_set_member_name(builder, "payloads");
+        //json_builder_begin_array(builder);
 
-        json_builder_begin_object(builder);
-        json_builder_set_member_name(builder, "encodingName");
+        NSMutableDictionary *payloads = [NSMutableDictionary dictionary];
+
+        //json_builder_begin_object(builder);
+        //json_builder_set_member_name(builder, "encodingName");
         encoding_name = g_object_steal_data(media_session, "encoding-name");
-        json_builder_add_string_value(builder, encoding_name);
+        //json_builder_add_string_value(builder, encoding_name);
+        payloads[@"encodingName"] = [NSString stringWithUTF8String:encoding_name];
 
-        json_builder_set_member_name(builder, "type");
+        //json_builder_set_member_name(builder, "type");
         payload_type = GPOINTER_TO_UINT(g_object_steal_data(media_session, "payload-type"));
-        json_builder_add_int_value(builder, payload_type);
+        //json_builder_add_int_value(builder, payload_type);
+        payloads[@"type"] = [NSNumber numberWithInt:payload_type];
 
-        json_builder_set_member_name(builder, "clockRate");
+        //json_builder_set_member_name(builder, "clockRate");
         clock_rate = GPOINTER_TO_UINT(g_object_steal_data(media_session, "clock-rate"));
-        json_builder_add_int_value(builder, clock_rate);
+        //json_builder_add_int_value(builder, clock_rate);
+        payloads[@"clockRate"] = [NSNumber numberWithInt:clock_rate];
 
         if (!g_strcmp0(media_type, "audio")) {
-            json_builder_set_member_name(builder, "channels");
+            //json_builder_set_member_name(builder, "channels");
             channels = GPOINTER_TO_UINT(g_object_steal_data(media_session, "channels"));
-            json_builder_add_int_value(builder, channels);
+            //json_builder_add_int_value(builder, channels);
+            payloads[@"channels"] = [NSNumber numberWithInt:channels];
+
         } else if (!g_strcmp0(media_type, "video")) {
-            json_builder_set_member_name(builder, "ccmfir");
+            //json_builder_set_member_name(builder, "ccmfir");
             ccm_fir = GPOINTER_TO_UINT(g_object_steal_data(media_session, "ccm-fir"));
-            json_builder_add_boolean_value(builder, ccm_fir);
-            json_builder_set_member_name(builder, "nackpli");
+            payloads[@"ccmfir"] = [NSNumber numberWithBool:ccm_fir];
+            //json_builder_add_boolean_value(builder, ccm_fir);
+            //json_builder_set_member_name(builder, "nackpli");
             nack_pli = GPOINTER_TO_UINT(g_object_steal_data(media_session, "nack-pli"));
-            json_builder_add_boolean_value(builder, nack_pli);
+            //json_builder_add_boolean_value(builder, nack_pli);
+            payloads[@"nackpli"] = [NSNumber numberWithBool:nack_pli];
         } else
             g_warn_if_reached();
 
-        json_builder_end_object(builder);
-        json_builder_end_array(builder); // payloads
+        //json_builder_end_object(builder);
+        //json_builder_end_array(builder); // payloads
+        mediaDescription[@"payloads"] = payloads;
 
-        json_builder_set_member_name(builder, "ice");
-        json_builder_begin_object(builder);
+
+        NSMutableDictionary *ice = [NSMutableDictionary dictionary];
+
+        //json_builder_set_member_name(builder, "ice");
+        //json_builder_begin_object(builder);
         candidates = g_object_steal_data(media_session, "local-candidates");
         candidate = OWR_CANDIDATE(candidates->data);
         g_object_get(candidate, "ufrag", &ice_ufrag, "password", &ice_password, NULL);
-        json_builder_set_member_name(builder, "ufrag");
-        json_builder_add_string_value(builder, ice_ufrag);
-        json_builder_set_member_name(builder, "password");
-        json_builder_add_string_value(builder, ice_password);
-        json_builder_set_member_name(builder, "candidates");
-        json_builder_begin_array(builder);
+
+        //json_builder_set_member_name(builder, "ufrag");
+        //json_builder_add_string_value(builder, ice_ufrag);
+        ice[@"ufrag"] = [NSString stringWithUTF8String:ice_ufrag];
+
+        //json_builder_set_member_name(builder, "password");
+        //json_builder_add_string_value(builder, ice_password);
+        ice[@"password"] = [NSString stringWithUTF8String:ice_password];
+
+        NSMutableArray *candidatesArray = [NSMutableArray array];
+        //json_builder_set_member_name(builder, "candidates");
+        //json_builder_begin_array(builder);
         for (list_item = candidates; list_item; list_item = list_item->next) {
             OwrCandidateType candidate_type;
             OwrComponentType component_type;
@@ -551,66 +573,107 @@ static void send_answer()
                          "foundation", &foundation, "transport-type", &transport_type, "address", &address,
                          "port", &port, "priority", &priority, "base-address", &related_address,
                          "base-port", &related_port, NULL);
-            json_builder_begin_object(builder);
-            json_builder_set_member_name(builder, "foundation");
-            json_builder_add_string_value(builder, foundation);
-            json_builder_set_member_name(builder, "componentId");
-            json_builder_add_int_value(builder, component_type);
-            json_builder_set_member_name(builder, "transport");
+
+            NSMutableDictionary *currentCandidate = [NSMutableDictionary dictionary];
+            //json_builder_begin_object(builder);
+            //json_builder_set_member_name(builder, "foundation");
+            //json_builder_add_string_value(builder, foundation);
+            currentCandidate[@"foundation"] = [NSString stringWithUTF8String:foundation];
+
+            //json_builder_set_member_name(builder, "componentId");
+            //json_builder_add_int_value(builder, component_type);
+            currentCandidate[@"componentId"] = [NSNumber numberWithInt:component_type];
+
+            //json_builder_set_member_name(builder, "transport");
+            currentCandidate[@"transport"] = transport_type == OWR_TRANSPORT_TYPE_UDP ? @"UDP" : @"TCP";
+            /*
             if (transport_type == OWR_TRANSPORT_TYPE_UDP)
                 json_builder_add_string_value(builder, "UDP");
             else
                 json_builder_add_string_value(builder, "TCP");
-            json_builder_set_member_name(builder, "priority");
-            json_builder_add_int_value(builder, priority);
-            json_builder_set_member_name(builder, "address");
-            json_builder_add_string_value(builder, address);
-            json_builder_set_member_name(builder, "port");
-            json_builder_add_int_value(builder, port);
-            json_builder_set_member_name(builder, "type");
-            json_builder_add_string_value(builder, candidate_types[candidate_type]);
+             */
+            //json_builder_set_member_name(builder, "priority");
+            //json_builder_add_int_value(builder, priority);
+            currentCandidate[@"priority"] = [NSNumber numberWithInt:priority];
+
+            //json_builder_set_member_name(builder, "address");
+            //json_builder_add_string_value(builder, address);
+            currentCandidate[@"address"] = [NSString stringWithUTF8String:address];
+
+            //json_builder_set_member_name(builder, "port");
+            //json_builder_add_int_value(builder, port);
+            currentCandidate[@"port"] = [NSNumber numberWithInt:port];
+
+            //json_builder_set_member_name(builder, "type");
+            //json_builder_add_string_value(builder, candidate_types[candidate_type]);
+            currentCandidate[@"type"] = [NSString stringWithUTF8String:candidate_types[candidate_type]];
+
             if (candidate_type != OWR_CANDIDATE_TYPE_HOST) {
-                json_builder_set_member_name(builder, "relatedAddress");
-                json_builder_add_string_value(builder, related_address);
-                json_builder_set_member_name(builder, "relatedPort");
-                json_builder_add_int_value(builder, related_port);
+                //json_builder_set_member_name(builder, "relatedAddress");
+                //json_builder_add_string_value(builder, related_address);
+                currentCandidate[@"relatedAddress"] = [NSString stringWithUTF8String:related_address];
+
+                //json_builder_set_member_name(builder, "relatedPort");
+                //json_builder_add_int_value(builder, related_port);
+                currentCandidate[@"relatedPort"] = [NSNumber numberWithInt:related_port];
             }
             if (transport_type != OWR_TRANSPORT_TYPE_UDP) {
-                json_builder_set_member_name(builder, "tcpType");
-                json_builder_add_string_value(builder, tcp_types[transport_type]);
+                //json_builder_set_member_name(builder, "tcpType");
+                //json_builder_add_string_value(builder, tcp_types[transport_type]);
+                currentCandidate[@"tcpType"] = [NSString stringWithUTF8String:tcp_types[transport_type]];
             }
-            json_builder_end_object(builder);
+            //json_builder_end_object(builder);
             g_free(foundation);
             g_free(address);
             g_free(related_address);
+
+            [candidatesArray addObject:currentCandidate];
         }
         g_list_free(candidates);
-        json_builder_end_array(builder); // candidates
-        json_builder_end_object(builder); // ice
+        //json_builder_end_array(builder); // candidates
 
-        json_builder_set_member_name(builder, "dtls");
-        json_builder_begin_object(builder);
-        json_builder_set_member_name(builder, "fingerprintHashFunction");
-        json_builder_add_string_value(builder, "sha-256");
-        json_builder_set_member_name(builder, "fingerprint");
+        mediaDescription[@"candidates"] = candidatesArray;
+
+        mediaDescription[@"ice"] = ice;
+        //json_builder_end_object(builder); // ice
+
+        //json_builder_set_member_name(builder, "dtls");
+        //json_builder_begin_object(builder);
+
+        NSMutableDictionary *dtls = [NSMutableDictionary dictionary];
+
+        //json_builder_set_member_name(builder, "fingerprintHashFunction");
+        //json_builder_add_string_value(builder, "sha-256");
+        dtls[@"fingerprintHashFunction"] = @"sha-256";
+
+        //json_builder_set_member_name(builder, "fingerprint");
         fingerprint = g_object_steal_data(media_session, "fingerprint");
-        json_builder_add_string_value(builder, fingerprint);
-        json_builder_set_member_name(builder, "setup");
-        json_builder_add_string_value(builder, "active");
-        json_builder_end_object(builder); // dtls
+        //json_builder_add_string_value(builder, fingerprint);
+        dtls[@"fingerprint"] = [NSString stringWithUTF8String:fingerprint];
 
-        json_builder_end_object(builder);
+        //json_builder_set_member_name(builder, "setup");
+        //json_builder_add_string_value(builder, "active");
+        dtls[@"setup"] = @"active";
+        //json_builder_end_object(builder); // dtls
+
+        mediaDescription[@"dtls"] = dtls;
+
+        //json_builder_end_object(builder);
 
         g_free(fingerprint);
         g_free(ice_password);
         g_free(ice_ufrag);
         g_free(encoding_name);
         g_free(media_type);
-    }
-    json_builder_end_array(builder); // mediaDescriptions
-    json_builder_end_object(builder); // sessionDescription
-    json_builder_end_object(builder); // root
 
+        [mediaDescriptions addObject:mediaDescription];
+    }
+
+    //json_builder_end_array(builder); // mediaDescriptions
+    //json_builder_end_object(builder); // sessionDescription
+    //json_builder_end_object(builder); // root
+
+    /*
     json_generator_set_pretty(generator, TRUE);
     root = json_builder_get_root(builder);
     json_generator_set_root(generator, root);
@@ -618,13 +681,18 @@ static void send_answer()
     json_node_free(root);
     g_object_unref(builder);
     g_object_unref(generator);
+     */
 
+    sdp[@"mediaDescriptions"] = mediaDescriptions;
+
+    NSString *stringRepr = [OpenWebRTCUtils generateSDPFromObject:sdp];
 
     if (staticSelf.delegate) {
-        [staticSelf.delegate answerGenerated:[NSString stringWithUTF8String:json]];
+        [staticSelf.delegate answerGenerated:stringRepr];
     }
 }
 
+/*
 static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpointer user_data)
 {
     GList *local_candidates;
@@ -759,187 +827,6 @@ static OwrCandidate * candidate_from_positioned_json_reader(JsonReader *reader)
     return remote_candidate;
 }
 
-static void handle_offer(gchar *message, gsize message_length)
-{
-    JsonParser *parser;
-    JsonReader *reader;
-    gint i, number_of_media_descriptions;
-    const gchar *mtype;
-    OwrMediaType media_type = OWR_MEDIA_TYPE_UNKNOWN;
-    gboolean rtcp_mux;
-    OwrMediaSession *media_session;
-    GObject *session;
-    gint j, number_of_payloads, number_of_candidates;
-    gint64 payload_type, clock_rate, channels = 0;
-    const gchar *encoding_name;
-    gboolean ccm_fir = FALSE, nack_pli = FALSE;
-    OwrCodecType codec_type;
-    OwrCandidate *remote_candidate;
-    OwrComponentType component_type;
-    const gchar *ice_ufrag, *ice_password;
-    OwrPayload *send_payload, *receive_payload;
-    GList *list_item;
-    OwrMediaSource *source;
-    OwrMediaType source_media_type;
-    GList *media_sessions;
-
-    parser = json_parser_new();
-    json_parser_load_from_data(parser, message, message_length, NULL);
-    reader = json_reader_new(json_parser_get_root(parser));
-    json_reader_read_member(reader, "sessionDescription");
-    json_reader_read_member(reader, "mediaDescriptions");
-    number_of_media_descriptions = json_reader_count_elements(reader);
-    for (i = 0; i < number_of_media_descriptions; i++) {
-        json_reader_read_element(reader, i);
-        media_session = owr_media_session_new(TRUE);
-        session = G_OBJECT(media_session);
-
-        json_reader_read_member(reader, "type");
-        mtype = json_reader_get_string_value(reader);
-        g_object_set_data(session, "media-type", g_strdup(mtype));
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "rtcp");
-        json_reader_read_member(reader, "mux");
-        rtcp_mux = json_reader_get_boolean_value(reader);
-        g_object_set(media_session, "rtcp-mux", rtcp_mux, NULL);
-        json_reader_end_member(reader);
-        json_reader_end_member(reader);
-
-        json_reader_read_member(reader, "payloads");
-        number_of_payloads = json_reader_count_elements(reader);
-        codec_type = OWR_CODEC_TYPE_NONE;
-        for (j = 0; j < number_of_payloads && codec_type == OWR_CODEC_TYPE_NONE; j++) {
-            json_reader_read_element(reader, j);
-
-            json_reader_read_member(reader, "encodingName");
-            encoding_name = json_reader_get_string_value(reader);
-            json_reader_end_member(reader);
-
-            json_reader_read_member(reader, "type");
-            payload_type = json_reader_get_int_value(reader);
-            json_reader_end_member(reader);
-
-            json_reader_read_member(reader, "clockRate");
-            clock_rate = json_reader_get_int_value(reader);
-            json_reader_end_member(reader);
-
-            send_payload = receive_payload = NULL;
-            if (!g_strcmp0(mtype, "audio")) {
-                media_type = OWR_MEDIA_TYPE_AUDIO;
-                if (!g_strcmp0(encoding_name, "PCMA"))
-                    codec_type = OWR_CODEC_TYPE_PCMA;
-                else if (!g_strcmp0(encoding_name, "PCMU"))
-                    codec_type = OWR_CODEC_TYPE_PCMU;
-                else if (!g_strcmp0(encoding_name, "OPUS") || !g_strcmp0(encoding_name, "opus"))
-                    codec_type = OWR_CODEC_TYPE_OPUS;
-                else
-                    continue;
-
-                json_reader_read_member(reader, "channels");
-                channels = json_reader_get_int_value(reader);
-                json_reader_end_member(reader);
-
-                send_payload = owr_audio_payload_new(codec_type, payload_type, clock_rate,
-                                                     channels);
-                receive_payload = owr_audio_payload_new(codec_type, payload_type, clock_rate,
-                                                        channels);
-            } else if (!g_strcmp0(mtype, "video")) {
-                media_type = OWR_MEDIA_TYPE_VIDEO;
-                if (!g_strcmp0(encoding_name, "H264"))
-                    codec_type = OWR_CODEC_TYPE_H264;
-                else if (!g_strcmp0(encoding_name, "VP8"))
-                    codec_type = OWR_CODEC_TYPE_VP8;
-                else
-                    continue;
-
-                json_reader_read_member(reader, "ccmfir");
-                ccm_fir = json_reader_get_boolean_value(reader);
-                json_reader_end_member(reader);
-                json_reader_read_member(reader, "nackpli");
-                nack_pli = json_reader_get_boolean_value(reader);
-                json_reader_end_member(reader);
-
-                send_payload = owr_video_payload_new(codec_type, payload_type, clock_rate,
-                                                     ccm_fir, nack_pli);
-                receive_payload = owr_video_payload_new(codec_type, payload_type, clock_rate,
-                                                        ccm_fir, nack_pli);
-            } else
-                g_warn_if_reached();
-
-            if (send_payload && receive_payload) {
-                g_object_set_data(session, "encoding-name", g_strdup(encoding_name));
-                g_object_set_data(session, "payload-type", GUINT_TO_POINTER(payload_type));
-                g_object_set_data(session, "clock-rate", GUINT_TO_POINTER(clock_rate));
-                if (OWR_IS_AUDIO_PAYLOAD(send_payload))
-                    g_object_set_data(session, "channels", GUINT_TO_POINTER(channels));
-                else if (OWR_IS_VIDEO_PAYLOAD(send_payload)) {
-                    g_object_set_data(session, "ccm-fir", GUINT_TO_POINTER(ccm_fir));
-                    g_object_set_data(session, "nack-pli", GUINT_TO_POINTER(nack_pli));
-                } else
-                    g_warn_if_reached();
-
-                owr_media_session_add_receive_payload(media_session, receive_payload);
-                owr_media_session_set_send_payload(media_session, send_payload);
-            }
-            json_reader_end_element(reader);
-        }
-        json_reader_end_member(reader); // payloads
-
-        json_reader_read_member(reader, "ice");
-        json_reader_read_member(reader, "ufrag");
-        ice_ufrag = json_reader_get_string_value(reader);
-        g_object_set_data_full(session, "remote-ice-ufrag", g_strdup(ice_ufrag), g_free);
-        json_reader_end_member(reader);
-        json_reader_read_member(reader, "password");
-        ice_password = json_reader_get_string_value(reader);
-        g_object_set_data_full(session, "remote-ice-password", g_strdup(ice_password), g_free);
-        json_reader_end_member(reader);
-        if (json_reader_read_member(reader, "candidates")) {
-            number_of_candidates = json_reader_count_elements(reader);
-            for (j = 0; j < number_of_candidates; j++) {
-                json_reader_read_element(reader, j);
-                remote_candidate = candidate_from_positioned_json_reader(reader);
-                g_object_set(remote_candidate, "ufrag", ice_ufrag, "password", ice_password, NULL);
-                g_object_get(remote_candidate, "component-type", &component_type, NULL);
-                if (!rtcp_mux || component_type != OWR_COMPONENT_TYPE_RTCP)
-                    owr_session_add_remote_candidate(OWR_SESSION(media_session), remote_candidate);
-                else
-                    g_object_unref(remote_candidate);
-                json_reader_end_element(reader);
-            }
-            json_reader_end_member(reader); // candidates
-        }
-        json_reader_end_member(reader); // ice
-
-        json_reader_end_element(reader);
-
-        g_signal_connect(media_session, "on-incoming-source", G_CALLBACK(got_remote_source), NULL);
-        g_signal_connect(media_session, "on-new-candidate", G_CALLBACK(got_candidate), NULL);
-        g_signal_connect(media_session, "on-candidate-gathering-done",
-                         G_CALLBACK(candidate_gathering_done), NULL);
-        g_signal_connect(media_session, "notify::dtls-certificate",
-                         G_CALLBACK(got_dtls_certificate), NULL);
-
-        for (list_item = local_sources; list_item; list_item = list_item->next) {
-            source = OWR_MEDIA_SOURCE(list_item->data);
-            g_object_get(source, "media-type", &source_media_type, NULL);
-            if (source_media_type == media_type) {
-                local_sources = g_list_remove(local_sources, source);
-                owr_media_session_set_send_source(media_session, source);
-                break;
-            }
-        }
-        media_sessions = g_object_get_data(G_OBJECT(transport_agent), "media-sessions");
-        media_sessions = g_list_append(media_sessions, media_session);
-        g_object_set_data(G_OBJECT(transport_agent), "media-sessions", media_sessions);
-        owr_transport_agent_add_session(transport_agent, OWR_SESSION(media_session));
-    }
-    json_reader_end_member(reader);
-    json_reader_end_member(reader);
-    g_object_unref(reader);
-    g_object_unref(parser);
-}
 
 static void handle_remote_candidate(gchar *message, gsize message_length)
 {
@@ -1013,67 +900,6 @@ static void reset()
     local_sources = NULL;
     owr_get_capture_sources(OWR_MEDIA_TYPE_AUDIO | OWR_MEDIA_TYPE_VIDEO,
                             (OwrCaptureSourcesCallback)got_local_sources, NULL);
-}
-
-static void eventstream_line_read(GDataInputStream *input_stream, GAsyncResult *result,
-                                  gpointer user_data)
-{
-    gchar *line;
-    gsize line_length;
-    gboolean peer_joined = GPOINTER_TO_UINT(user_data);
-
-    line = g_data_input_stream_read_line_finish_utf8(input_stream, result, &line_length, NULL);
-    if (line) {
-        if (peer_joined && g_strstr_len(line, MIN(line_length, 5), "data:")) {
-            peer_joined = FALSE;
-            g_free(peer_id);
-            peer_id = g_strndup(line + 5, line_length - 5);
-            g_message("Peer joined: %s", peer_id);
-        } else if (g_strstr_len(line, MIN(line_length, 11), "event:leave")) {
-            g_message("Peer left");
-            peer_id = 0;
-            reset();
-        } else if (g_strstr_len(line, MIN(line_length, 10), "event:join"))
-            peer_joined = TRUE;
-        else if (g_strstr_len(line + 7, MIN(MAX(line_length - 7, 0), 3), "sdp"))
-            handle_offer(line + 5, line_length - 5);
-        else if (g_strstr_len(line + 7, MIN(MAX(line_length - 7, 0), 9), "candidate"))
-            handle_remote_candidate(line + 5, line_length - 5);
-        g_free(line);
-    }
-
-    read_eventstream_line(input_stream, GUINT_TO_POINTER(peer_joined));
-}
-
-static void read_eventstream_line(GDataInputStream *input_stream, gpointer user_data)
-{
-    g_data_input_stream_read_line_async(input_stream, G_PRIORITY_DEFAULT, NULL,
-                                        (GAsyncReadyCallback)eventstream_line_read, user_data);
-}
-
-static void eventsource_request_sent(SoupSession *soup_session, GAsyncResult *result,
-                                     gpointer user_data)
-{
-    GInputStream *input_stream;
-    GDataInputStream *data_input_stream;
-
-    input_stream = soup_session_send_finish(soup_session, result, NULL);
-    if (input_stream) {
-        data_input_stream = g_data_input_stream_new(input_stream);
-        read_eventstream_line(data_input_stream, user_data);
-    } else
-        g_warning("Failed to connect to the server");
-}
-
-static void send_eventsource_request(const gchar *url)
-{
-    SoupSession *soup_session;
-    SoupMessage *soup_message;
-
-    soup_session = soup_session_new();
-    soup_message = soup_message_new("GET", url);
-    soup_session_send_async(soup_session, soup_message, NULL,
-                            (GAsyncReadyCallback)eventsource_request_sent, NULL);
 }
 
  */
