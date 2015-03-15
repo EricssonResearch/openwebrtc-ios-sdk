@@ -29,13 +29,12 @@
 #import <Foundation/Foundation.h>
 #import "OpenWebRTCVideoView.h"
 
-#include <owr/owr_local.h>
-#include <owr/owr_transport_agent.h>
-
 @protocol OpenWebRTCNativeHandlerDelegate <NSObject>
 
 - (void)answerGenerated:(NSString *)answer;
-- (void)addHelperServersForTransportAgent:(OwrTransportAgent *)transportAgent;
+- (void)offerGenerated:(NSString *)offer;
+
+- (void)gotLocalSources;
 
 @end
 
@@ -43,12 +42,16 @@
 
 @property (nonatomic, weak) id <OpenWebRTCNativeHandlerDelegate> delegate;
 
-- (instancetype)init;
+- (instancetype)initWithDelegate:(id <OpenWebRTCNativeHandlerDelegate>)delegate;
 
 - (void)setSelfView:(OpenWebRTCVideoView *)selfView;
 - (void)setRemoteView:(OpenWebRTCVideoView *)remoteView;
+- (void)addSTUNServerWithAddress:(NSString *)address port:(NSInteger)port;
+- (void)addTURNServerWithAddress:(NSString *)address port:(NSInteger)port username:(NSString *)username password:(NSString *)password isTCP:(BOOL)isTCP;
 
-- (void)startGetCaptureSources:(OwrMediaType)types;
+- (void)startGetCaptureSourcesForAudio:(BOOL)audio video:(BOOL)video;
+- (void)initiateCall;
+- (void)terminateCall;
 
 - (void)handleOfferReceived:(NSString *)offer;
 - (void)handleRemoteCandidateReceived:(NSDictionary *)candidate;
