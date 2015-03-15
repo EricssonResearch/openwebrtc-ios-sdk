@@ -624,7 +624,12 @@ static void send_answer()
     sdp[@"mediaDescriptions"] = mediaDescriptions;
 
     NSString *sdpString = [OpenWebRTCUtils generateSDPFromObject:sdp];
-    NSString *answer = [NSString stringWithFormat:@"{\"sdp\":\"%@\", \"type\":\"answer\"}", sdpString];
+
+    NSDictionary *d = @{@"sdp": @{@"sdp": sdpString, @"type": @"answer"}};
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:d
+                                                       options:NSJSONWritingPrettyPrinted
+                                                         error:nil];
+    NSString *answer = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
 
     if (staticSelf.delegate) {
         [staticSelf.delegate answerGenerated:answer];
