@@ -55,6 +55,7 @@ static OpenWebRTCNativeHandler *staticSelf;
 @interface OpenWebRTCNativeHandler ()
 
 @property (nonatomic, strong) NSMutableArray *helperServers;
+@property (nonatomic, strong) NSMutableArray *remoteCandidatesCache;
 
 @end
 
@@ -118,6 +119,14 @@ static OpenWebRTCNativeHandler *staticSelf;
         _helperServers = [NSMutableArray array];
     }
     return _helperServers;
+}
+
+- (NSMutableArray *)remoteCandidatesCache
+{
+    if (!_remoteCandidatesCache) {
+        _remoteCandidatesCache = [NSMutableArray array];
+    }
+    return _remoteCandidatesCache;
 }
 
 - (void)handleOfferReceived:(NSString *)offer
@@ -307,50 +316,53 @@ static OpenWebRTCNativeHandler *staticSelf;
     return remote_candidate;
 }
 
-- (void)handleRemoteCandidateReceived:(NSDictionary *)candidate
+- (void)handleRemoteCandidateReceived:(NSDictionary *)remoteCandidate
 {
-    NSString *candidateString = [NSString stringWithFormat:@"m=application 0 NONE\r\na=%@\r\n", candidate[@"candidate"]];
-    NSDictionary *mockSDP = [OpenWebRTCUtils parseSDPFromString:candidateString];
-
     /*
-     Received DATA from peer: {"candidate":{"sdpMLineIndex":0,"sdpMid":"video","candidate":"candidate:4000241536 2 udp 2122260223 129.192.20.149 56087 typ host generation 0","candidateDescription":{"foundation":"4000241536","componentId":2,"transport":"UDP","priority":2122260223,"address":"129.192.20.149","port":56087,"type":"host"}}}
+     {"candidate":{"sdpMLineIndex":1,"sdpMid":"video","candidate":"candidate:2699897712 1 tcp 1518214911 129.192.20.149 0 typ host tcptype active generation 0"}}
      */
 
-    NSDictionary *mediaDescription = mockSDP[@"mediaDescriptions"][0];
-    if (mediaDescription && mediaDescription[@"ice"]) {
-        for (NSDictionary *candidateObject in mediaDescription[@"ice"][@"candidates"]) {
-            gint index;
-            GList *media_sessions;
-            OwrMediaSession *media_session;
-            OwrCandidate *remote_candidate;
-            OwrComponentType component_type;
-            gboolean rtcp_mux;
-            gchar *ice_ufrag, *ice_password;
+    NSDictionary *candidate = remoteCandidate[@"candidate"];
+    if (candidate && candidate[@"candidateDescription"]) {
+        gint index;
+        GList *media_sessions;
+        OwrMediaSession *media_session;
+        OwrCandidate *remote_candidate;
+        OwrComponentType component_type;
+        gboolean rtcp_mux;
+        gchar *ice_ufrag, *ice_password;
 
-            index = [candidate[@"sdpMLineIndex"] intValue];
+        index = [candidate[@"sdpMLineIndex"] intValue];
 
-            media_sessions = g_object_get_data(G_OBJECT(transport_agent), "media-sessions");
-            media_session = OWR_MEDIA_SESSION(g_list_nth_data(media_sessions, index));
+        media_sessions = g_object_get_data(G_OBJECT(transport_agent), "media-sessions");
+        media_session = OWR_MEDIA_SESSION(g_list_nth_data(media_sessions, index));
 
-            if (!media_session) {
-                NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to find media_session for candidate: %@", candidate);
-                continue;
-            }
-
-            NSDictionary *candidateDescription = candidate[@"candidateDescription"];
-            remote_candidate = [OpenWebRTCNativeHandler candidateFromObject:candidateDescription];
-
-            ice_ufrag = g_object_get_data(G_OBJECT(media_session), "remote-ice-ufrag");
-            ice_password = g_object_get_data(G_OBJECT(media_session), "remote-ice-password");
-            g_object_set(remote_candidate, "ufrag", ice_ufrag, "password", ice_password, NULL);
-            g_object_get(media_session, "rtcp-mux", &rtcp_mux, NULL);
-            g_object_get(remote_candidate, "component-type", &component_type, NULL);
-            if (!rtcp_mux || component_type != OWR_COMPONENT_TYPE_RTCP) {
-                owr_session_add_remote_candidate(OWR_SESSION(media_session), remote_candidate);
-            }
-
-            NSLog(@"[OpenWebRTCNativeHandler] Handled candidate: %@", candidate);
+        if (!media_session) {
+            NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to find media_session for candidate: %@", candidate);
+            [self.remoteCandidatesCache addObject:remoteCandidate];
+            return;
         }
+
+        NSDictionary *candidateDescription = candidate[@"candidateDescription"];
+        remote_candidate = [OpenWebRTCNativeHandler candidateFromObject:candidateDescription];
+
+        ice_ufrag = g_object_get_data(G_OBJECT(media_session), "remote-ice-ufrag");
+        ice_password = g_object_get_data(G_OBJECT(media_session), "remote-ice-password");
+        g_object_set(remote_candidate, "ufrag", ice_ufrag, "password", ice_password, NULL);
+        g_object_get(media_session, "rtcp-mux", &rtcp_mux, NULL);
+        g_object_get(remote_candidate, "component-type", &component_type, NULL);
+
+        if (!rtcp_mux || component_type != OWR_COMPONENT_TYPE_RTCP) {
+            owr_session_add_remote_candidate(OWR_SESSION(media_session), remote_candidate);
+        }
+
+        NSLog(@"[OpenWebRTCNativeHandler] Handled remote candidate: %@", candidate);
+
+        if ([self.remoteCandidatesCache containsObject:remoteCandidate]) {
+            [self.remoteCandidatesCache removeObject:remoteCandidate];
+            NSLog(@"Candidate removed from cache.");
+        }
+
     } else {
         NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to parse ICE candidate: %@", candidate);
     }
@@ -382,6 +394,8 @@ static void got_local_sources(GList *sources);
 static void got_remote_source(OwrMediaSession *media_session, OwrMediaSource *source,
                               gpointer user_data)
 {
+    NSLog(@">>>>>>>>>>>>>>>>>>>>>>>>>> got_remote_source");
+
     OwrMediaType media_type;
     gchar *name = NULL;
     OwrMediaRenderer *renderer;
@@ -421,6 +435,7 @@ static gboolean can_send_answer()
 
 static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpointer user_data)
 {
+    NSLog(@">>>>>>>>>>>>>>>>>>>>>>>>>> Got local candidate");
     GList *local_candidates;
     g_return_if_fail(!user_data);
 
@@ -442,6 +457,8 @@ static void candidate_gathering_done(GObject *media_session, gpointer user_data)
 
 static void got_dtls_certificate(GObject *media_session, GParamSpec *pspec, gpointer user_data)
 {
+    NSLog(@"############################# got_dtls_certificate");
+
     guint i;
     gchar *pem, *line;
     guchar *der, *tmp;
@@ -486,20 +503,6 @@ static void got_dtls_certificate(GObject *media_session, GParamSpec *pspec, gpoi
     if (can_send_answer())
         send_answer();
 }
-
-/*
-static void answer_sent(SoupSession *soup_session, GAsyncResult *result, gpointer user_data)
-{
-    GInputStream *input_stream;
-    g_return_if_fail(!user_data);
-
-    input_stream = soup_session_send_finish(soup_session, result, NULL);
-    if (!input_stream)
-        g_warning("Failed to send answer to server");
-    else
-        g_object_unref(input_stream);
-}
- */
 
 static void send_answer()
 {
@@ -651,53 +654,6 @@ static void candidate_gathering_done(GObject *media_session, gpointer user_data)
 {
     g_return_if_fail(!user_data);
     g_object_set_data(media_session, "gathering-done", GUINT_TO_POINTER(1));
-    if (can_send_answer())
-        send_answer();
-}
-
-static void got_dtls_certificate(GObject *media_session, GParamSpec *pspec, gpointer user_data)
-{
-    guint i;
-    gchar *pem, *line;
-    guchar *der, *tmp;
-    gchar **lines;
-    gint state = 0;
-    guint save = 0;
-    gsize der_length = 0;
-    GChecksum *checksum;
-    guint8 *digest;
-    gsize digest_length;
-    GString *fingerprint;
-
-    g_return_if_fail(G_IS_PARAM_SPEC(pspec));
-    g_return_if_fail(!user_data);
-
-    g_object_get(media_session, "dtls-certificate", &pem, NULL);
-    der = tmp = g_new0(guchar, (strlen(pem) / 4) * 3 + 3);
-    lines = g_strsplit(pem, "\n", 0);
-    for (i = 0, line = lines[i]; line; line = lines[++i]) {
-        if (line[0] && !g_str_has_prefix(line, "-----"))
-            tmp += g_base64_decode_step(line, strlen(line), tmp, &state, &save);
-    }
-    der_length = tmp - der;
-    checksum = g_checksum_new(G_CHECKSUM_SHA256);
-    digest_length = g_checksum_type_get_length(G_CHECKSUM_SHA256);
-    digest = g_new(guint8, digest_length);
-    g_checksum_update(checksum, der, der_length);
-    g_checksum_get_digest(checksum, digest, &digest_length);
-    fingerprint = g_string_new(NULL);
-    for (i = 0; i < digest_length; i++) {
-        if (i)
-            g_string_append(fingerprint, ":");
-        g_string_append_printf(fingerprint, "%02X", digest[i]);
-    }
-    g_object_set_data(media_session, "fingerprint", g_string_free(fingerprint, FALSE));
-
-    g_free(digest);
-    g_checksum_free(checksum);
-    g_free(der);
-    g_strfreev(lines);
-
     if (can_send_answer())
         send_answer();
 }
