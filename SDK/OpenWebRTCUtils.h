@@ -48,7 +48,4 @@
  */
 + (NSString *)generateSDPFromObject:(NSDictionary *)sdpObject;
 
-
-+ (void)test_sdp_parsing;
-
 @end

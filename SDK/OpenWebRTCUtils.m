@@ -80,29 +80,4 @@ static JSContext *_context;
     return [result toString];
 }
 
-#pragma mark - Test
-
-+ (void)test_sdp_parsing
-{
-    NSArray *tests = @[@"example_dc", @"example_ff_remote"];
-
-    for (NSString *file in tests) {
-        NSString *path = [[NSBundle mainBundle] pathForResource:file ofType:@"sdp"];
-        if (path) {
-            NSError *error = nil;
-            NSString *js = [NSString stringWithContentsOfURL:[NSURL fileURLWithPath:path]
-                                                    encoding:NSUTF8StringEncoding
-                                                       error:&error];
-            if (js && !error) {
-                NSDictionary *sdp = [OpenWebRTCUtils parseSDPFromString:js];
-                NSLog(@"::::::::::::::::: SDP: %@", sdp);
-            } else {
-                NSLog(@"[OpenWebRTCUtils] WARNING! Could not open %@.sdp", file);
-            }
-        } else {
-            NSLog(@"[OpenWebRTCUtils] WARNING! Could not find %@.sdp", file);
-        }
-    }
-}
-
 @end
