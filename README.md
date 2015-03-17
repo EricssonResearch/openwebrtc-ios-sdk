@@ -1,3 +1,5 @@
+![pod version](https://img.shields.io/cocoapods/v/OpenWebRTC.svg) [![Badge w/ Platform](http://img.shields.io/cocoapods/p/OpenWebRTC.svg?style=flat)](https://cocoadocs.org/docsets/OpenWebRTC)
+
 # OpenWebRTC iOS SDK
 SDK for adding OpenWebRTC to your iOS apps using CocoaPods 
 
