@@ -55,6 +55,7 @@
 - (void)terminateCall;
 
 - (void)handleOfferReceived:(NSString *)offer;
+- (void)handleAnswerReceived:(NSString *)answer;
 - (void)handleRemoteCandidateReceived:(NSDictionary *)candidate;
 
 @end

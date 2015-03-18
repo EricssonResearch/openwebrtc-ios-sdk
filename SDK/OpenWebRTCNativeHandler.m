@@ -35,15 +35,11 @@
 #include "owr.h"
 #include "owr_audio_payload.h"
 #include "owr_audio_renderer.h"
-//#include "owr_local.h"
 #include "owr_media_session.h"
 #include "owr_transport_agent.h"
 #include "owr_video_payload.h"
 #include "owr_video_renderer.h"
 #include "owr_window_registry.h"
-
-//#include <gio/gio.h>
-//#include <string.h>
 
 #define SELF_VIEW_TAG "self-view"
 #define REMOTE_VIEW_TAG "remote-view"
@@ -103,12 +99,28 @@ static OpenWebRTCNativeHandler *staticSelf;
 
 - (void)initiateCall
 {
-    NSLog(@"WARNING! initiateCall Not yet implemented");
+    NSString *sdpString = [OpenWebRTCNativeHandler generateSDP];
+
+    NSDictionary *d = @{@"sdp": @{@"sdp": sdpString, @"type": @"offer"}};
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:d
+                                                       options:NSJSONWritingPrettyPrinted
+                                                         error:nil];
+    NSString *offer = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+
+    if (staticSelf.delegate) {
+        [staticSelf.delegate offerGenerated:offer];
+    }
 }
 
 - (void)terminateCall
 {
     NSLog(@"WARNING! terminateCall Not yet implemented");
+    reset();
+}
+
+- (void)handleAnswerReceived:(NSString *)answer
+{
+    NSLog(@"####################################### handleAnswerReceived #######################################");
 }
 
 #pragma mark - Private methods.
@@ -446,6 +458,68 @@ static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpoin
     local_candidates = g_object_get_data(media_session, "local-candidates");
     local_candidates = g_list_append(local_candidates, candidate);
     g_object_set_data(media_session, "local-candidates", local_candidates);
+
+    NSMutableDictionary *candidateDict = [NSMutableDictionary dictionary];
+    NSString *candidate_type;
+    NSInteger component_type;
+    NSString *foundation;
+    NSString *transportType;
+    NSString *tcpType;
+    NSString *address;
+    NSInteger port;
+    NSInteger priority;
+
+    /*
+     {"candidate":{"sdpMLineIndex":1,"sdpMid":"video","candidate":"candidate:2699897712 1 tcp 1518214911 129.192.20.149 0 typ host tcptype active generation 0"}}
+     
+     cand_type = [candidate[@"type"] UTF8String];
+
+     if (!g_strcmp0(cand_type, "host"))
+     candidate_type = OWR_CANDIDATE_TYPE_HOST;
+     else if (!g_strcmp0(cand_type, "srflx"))
+     candidate_type = OWR_CANDIDATE_TYPE_SERVER_REFLEXIVE;
+     else
+     candidate_type = OWR_CANDIDATE_TYPE_RELAY;
+
+     component_type = (OwrComponentType)[candidate[@"componentId"] intValue];
+     remote_candidate = owr_candidate_new(candidate_type, component_type);
+
+     foundation = [candidate[@"foundation"] UTF8String];
+     g_object_set(remote_candidate, "foundation", foundation, NULL);
+
+     transport = [candidate[@"transport"] UTF8String];
+     if (!g_strcmp0(transport, "UDP"))
+     transport_type = OWR_TRANSPORT_TYPE_UDP;
+     else
+     transport_type = OWR_TRANSPORT_TYPE_TCP_ACTIVE;
+
+     if (transport_type != OWR_TRANSPORT_TYPE_UDP) {
+     tcp_type = [candidate[@"tcpType"] UTF8String];
+     if (!g_strcmp0(tcp_type, "active"))
+     transport_type = OWR_TRANSPORT_TYPE_TCP_ACTIVE;
+     else if (!g_strcmp0(tcp_type, "passive"))
+     transport_type = OWR_TRANSPORT_TYPE_TCP_PASSIVE;
+     else
+     transport_type = OWR_TRANSPORT_TYPE_TCP_SO;
+     }
+     g_object_set(remote_candidate, "transport-type", transport_type, NULL);
+
+     address = [candidate[@"address"] UTF8String];
+     g_object_set(remote_candidate, "address", address, NULL);
+
+     port = [candidate[@"port"] intValue];
+     g_object_set(remote_candidate, "port", port, NULL);
+
+     priority = [candidate[@"priority"] intValue];
+     g_object_set(remote_candidate, "priority", priority, NULL);
+
+     */
+
+
+    if (staticSelf.delegate) {
+        //[staticSelf.delegate candidateGenerate:@""];
+        // TODO: Send candidates.
+    }
 }
 
 static void candidate_gathering_done(GObject *media_session, gpointer user_data)
@@ -457,8 +531,6 @@ static void candidate_gathering_done(GObject *media_session, gpointer user_data)
 
     if (can_send_answer()) {
         send_answer();
-
-
     }
 }
 
@@ -496,8 +568,9 @@ static void got_dtls_certificate(GObject *media_session, GParamSpec *pspec, gpoi
     g_checksum_get_digest(checksum, digest, &digest_length);
     fingerprint = g_string_new(NULL);
     for (i = 0; i < digest_length; i++) {
-        if (i)
+        if (i) {
             g_string_append(fingerprint, ":");
+        }
         g_string_append_printf(fingerprint, "%02X", digest[i]);
     }
     g_object_set_data(media_session, "fingerprint", g_string_free(fingerprint, FALSE));
@@ -507,11 +580,27 @@ static void got_dtls_certificate(GObject *media_session, GParamSpec *pspec, gpoi
     g_free(der);
     g_strfreev(lines);
 
-    if (can_send_answer())
+    if (can_send_answer()) {
         send_answer();
+    }
 }
 
 static void send_answer()
+{
+    NSString *sdpString = [OpenWebRTCNativeHandler generateSDP];
+
+    NSDictionary *d = @{@"sdp": @{@"sdp": sdpString, @"type": @"answer"}};
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:d
+                                                       options:NSJSONWritingPrettyPrinted
+                                                         error:nil];
+    NSString *answer = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+
+    if (staticSelf.delegate) {
+        [staticSelf.delegate answerGenerated:answer];
+    }
+}
+
++ (NSString *)generateSDP
 {
     GList *media_sessions, *item;
     GObject *media_session;
@@ -627,42 +716,13 @@ static void send_answer()
         g_free(ice_ufrag);
         g_free(encoding_name);
         g_free(media_type);
-
+        
         [mediaDescriptions addObject:mediaDescription];
     }
-
+    
     sdp[@"mediaDescriptions"] = mediaDescriptions;
-
-    NSString *sdpString = [OpenWebRTCUtils generateSDPFromObject:sdp];
-
-    NSDictionary *d = @{@"sdp": @{@"sdp": sdpString, @"type": @"answer"}};
-    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:d
-                                                       options:NSJSONWritingPrettyPrinted
-                                                         error:nil];
-    NSString *answer = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-
-    if (staticSelf.delegate) {
-        [staticSelf.delegate answerGenerated:answer];
-    }
-}
-
-/*
-static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpointer user_data)
-{
-    GList *local_candidates;
-    g_return_if_fail(!user_data);
-
-    local_candidates = g_object_get_data(media_session, "local-candidates");
-    local_candidates = g_list_append(local_candidates, candidate);
-    g_object_set_data(media_session, "local-candidates", local_candidates);
-}
-
-static void candidate_gathering_done(GObject *media_session, gpointer user_data)
-{
-    g_return_if_fail(!user_data);
-    g_object_set_data(media_session, "gathering-done", GUINT_TO_POINTER(1));
-    if (can_send_answer())
-        send_answer();
+    
+    return [OpenWebRTCUtils generateSDPFromObject:sdp];
 }
 
 static void reset()
@@ -696,8 +756,6 @@ static void reset()
                             (OwrCaptureSourcesCallback)got_local_sources, NULL);
 }
 
- */
-//static void got_local_sources(GList *sources, gchar *url)
 static void got_local_sources(GList *sources)
 {
     NSLog(@"got_local_sources");
@@ -744,7 +802,7 @@ static void got_local_sources(GList *sources)
             renderer = owr_video_renderer_new(SELF_VIEW_TAG);
             g_assert(renderer);
 
-            g_object_set(renderer, "width", 640, "height", 480, "max-framerate", 30.0, NULL);
+            g_object_set(renderer, "width", 640, "height", 480, "max-framerate", 25.0, NULL);
 
             owr_media_renderer_set_source(OWR_MEDIA_RENDERER(renderer), source);
             have_video = TRUE;
