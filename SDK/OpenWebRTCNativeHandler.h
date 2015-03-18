@@ -33,6 +33,7 @@
 
 - (void)answerGenerated:(NSString *)answer;
 - (void)offerGenerated:(NSString *)offer;
+- (void)candidateGenerate:(NSString *)candidate;
 
 - (void)gotLocalSources;
 
