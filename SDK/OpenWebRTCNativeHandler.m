@@ -409,7 +409,7 @@ static void got_remote_source(OwrMediaSession *media_session, OwrMediaSource *so
     if (media_type == OWR_MEDIA_TYPE_AUDIO)
         renderer = OWR_MEDIA_RENDERER(owr_audio_renderer_new());
     else if (media_type == OWR_MEDIA_TYPE_VIDEO)
-        renderer = OWR_MEDIA_RENDERER(owr_video_renderer_new(NULL));
+        renderer = OWR_MEDIA_RENDERER(owr_video_renderer_new(REMOTE_VIEW_TAG));
     else
         g_return_if_reached();
 
