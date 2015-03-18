@@ -356,7 +356,7 @@ static OpenWebRTCNativeHandler *staticSelf;
             owr_session_add_remote_candidate(OWR_SESSION(media_session), remote_candidate);
         }
 
-        NSLog(@"[OpenWebRTCNativeHandler] Handled remote candidate: %@", candidate);
+        NSLog(@"[OpenWebRTCNativeHandler] Handled remote candidate");
 
         if ([self.remoteCandidatesCache containsObject:remoteCandidate]) {
             [self.remoteCandidatesCache removeObject:remoteCandidate];
@@ -419,17 +419,21 @@ static void got_remote_source(OwrMediaSession *media_session, OwrMediaSource *so
 
 static gboolean can_send_answer()
 {
+    NSLog(@">>>>>>>>>>>>>>>>>>>>>>>>>> can_send_answer");
     GObject *media_session;
     GList *media_sessions, *item;
 
     media_sessions = g_object_get_data(G_OBJECT(transport_agent), "media-sessions");
     for (item = media_sessions; item; item = item->next) {
+        NSLog(@">>>>>>>>>>>>>>>>>>>>>>>>>> can_send_answer????");
         media_session = G_OBJECT(item->data);
         if (!GPOINTER_TO_UINT(g_object_get_data(media_session, "gathering-done"))
-            || !g_object_get_data(media_session, "fingerprint"))
+            || !g_object_get_data(media_session, "fingerprint")) {
+            NSLog(@">>>>>>>>>>>>>>>>>>>>>>>>>> can_send_answer: NO");
             return FALSE;
+        }
     }
-
+    NSLog(@">>>>>>>>>>>>>>>>>>>>>>>>>> can_send_answer: YES");
     return TRUE;
 }
 
@@ -451,8 +455,11 @@ static void candidate_gathering_done(GObject *media_session, gpointer user_data)
 
     NSLog(@"############################# candidate_gathering_done -> should send answer!");
 
-    if (can_send_answer())
+    if (can_send_answer()) {
         send_answer();
+
+
+    }
 }
 
 static void got_dtls_certificate(GObject *media_session, GParamSpec *pspec, gpointer user_data)
@@ -604,7 +611,7 @@ static void send_answer()
         }
         g_list_free(candidates);
 
-        mediaDescription[@"candidates"] = candidatesArray;
+        ice[@"candidates"] = candidatesArray;
         mediaDescription[@"ice"] = ice;
 
         NSMutableDictionary *dtls = [NSMutableDictionary dictionary];
