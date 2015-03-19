@@ -46,6 +46,13 @@
 
 OwrVideoRenderer *renderer;
 
+static GList *local_sources, *renderers;
+static OwrTransportAgent *transport_agent;
+static gchar *candidate_types[] = { "host", "srflx", "relay", NULL };
+static gchar *tcp_types[] = { "", "active", "passive", "so", NULL };
+
+static void got_local_sources(GList *sources);
+
 static OpenWebRTCNativeHandler *staticSelf;
 
 @interface OpenWebRTCNativeHandler ()
@@ -151,7 +158,7 @@ static OpenWebRTCNativeHandler *staticSelf;
     gboolean rtcp_mux;
     OwrMediaSession *media_session;
     GObject *session;
-    gint64 payload_type, clock_rate, channels = 0;
+    guint payload_type, clock_rate, channels = 0;
     const gchar *encoding_name;
     gboolean ccm_fir = FALSE, nack_pli = FALSE;
     OwrCodecType codec_type;
@@ -271,6 +278,7 @@ static OpenWebRTCNativeHandler *staticSelf;
         media_sessions = g_object_get_data(G_OBJECT(transport_agent), "media-sessions");
         media_sessions = g_list_append(media_sessions, media_session);
         g_object_set_data(G_OBJECT(transport_agent), "media-sessions", media_sessions);
+        // This triggers local candidate gatehering.
         owr_transport_agent_add_session(transport_agent, OWR_SESSION(media_session));
     }
 }
@@ -374,7 +382,6 @@ static OpenWebRTCNativeHandler *staticSelf;
             [self.remoteCandidatesCache removeObject:remoteCandidate];
             NSLog(@"Candidate removed from cache.");
         }
-
     } else {
         NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to parse ICE candidate: %@", candidate);
     }
@@ -396,13 +403,6 @@ static OpenWebRTCNativeHandler *staticSelf;
 
 #pragma mark - C stuff
 
-static GList *local_sources, *renderers;
-static OwrTransportAgent *transport_agent;
-static gchar *candidate_types[] = { "host", "srflx", "relay", NULL };
-static gchar *tcp_types[] = { "", "active", "passive", "so", NULL };
-
-static void got_local_sources(GList *sources);
-
 static void got_remote_source(OwrMediaSession *media_session, OwrMediaSource *source,
                               gpointer user_data)
 {
@@ -418,12 +418,13 @@ static void got_remote_source(OwrMediaSession *media_session, OwrMediaSource *so
     g_object_get(source, "media-type", &media_type, "name", &name, NULL);
     g_message("Got remote source: %s", name);
 
-    if (media_type == OWR_MEDIA_TYPE_AUDIO)
+    if (media_type == OWR_MEDIA_TYPE_AUDIO) {
         renderer = OWR_MEDIA_RENDERER(owr_audio_renderer_new());
-    else if (media_type == OWR_MEDIA_TYPE_VIDEO)
+    } else if (media_type == OWR_MEDIA_TYPE_VIDEO) {
         renderer = OWR_MEDIA_RENDERER(owr_video_renderer_new(REMOTE_VIEW_TAG));
-    else
+    } else {
         g_return_if_reached();
+    }
 
     owr_media_renderer_set_source(renderer, source);
     renderers = g_list_append(renderers, renderer);
@@ -459,6 +460,7 @@ static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpoin
     local_candidates = g_list_append(local_candidates, candidate);
     g_object_set_data(media_session, "local-candidates", local_candidates);
 
+    /*
     NSMutableDictionary *candidateDict = [NSMutableDictionary dictionary];
     NSString *candidate_type;
     NSInteger component_type;
@@ -468,6 +470,7 @@ static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpoin
     NSString *address;
     NSInteger port;
     NSInteger priority;
+     */
 
     /*
      {"candidate":{"sdpMLineIndex":1,"sdpMid":"video","candidate":"candidate:2699897712 1 tcp 1518214911 129.192.20.149 0 typ host tcptype active generation 0"}}
