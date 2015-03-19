@@ -48,7 +48,7 @@ OwrVideoRenderer *renderer;
 
 static GList *local_sources, *renderers;
 static OwrTransportAgent *transport_agent;
-static gchar *candidate_types[] = { "host", "srflx", "relay", NULL };
+static gchar *candidate_types[] = { "host", "srflx", "prflx", "relay", NULL };
 static gchar *tcp_types[] = { "", "active", "passive", "so", NULL };
 
 static void got_local_sources(GList *sources);
@@ -69,7 +69,7 @@ static OpenWebRTCNativeHandler *staticSelf;
 - (instancetype)initWithDelegate:(id <OpenWebRTCNativeHandlerDelegate>)delegate
 {
     if (self = [super init]) {
-        owr_init();
+        //owr_init();
         staticSelf = self;
         self.delegate = delegate;
     }
