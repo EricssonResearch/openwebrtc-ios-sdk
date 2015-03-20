@@ -69,7 +69,6 @@ static OpenWebRTCNativeHandler *staticSelf;
 - (instancetype)initWithDelegate:(id <OpenWebRTCNativeHandlerDelegate>)delegate
 {
     if (self = [super init]) {
-        //owr_init();
         staticSelf = self;
         self.delegate = delegate;
     }
@@ -339,10 +338,49 @@ static OpenWebRTCNativeHandler *staticSelf;
 - (void)handleRemoteCandidateReceived:(NSDictionary *)remoteCandidate
 {
     /*
-     {"candidate":{"sdpMLineIndex":1,"sdpMid":"video","candidate":"candidate:2699897712 1 tcp 1518214911 129.192.20.149 0 typ host tcptype active generation 0"}}
+     {
+     candidate = "candidate:4000241536 1 udp 2122260223 129.192.20.149 59732 typ host generation 0";
+     sdpMLineIndex = 0;
+     sdpMid = audio;
+     }
      */
 
-    NSDictionary *candidate = remoteCandidate[@"candidate"];
+    /*
+     po candidateInfo
+     {
+        mediaDescriptions =     (
+            {
+                ice =             {
+                candidates =                 (
+                    {
+                        address = "129.192.20.149";
+                        componentId = 1;
+                        foundation = 4000241536;
+                        port = 57661;
+                        priority = 2122260223;
+                        transport = UDP;
+                        type = host;
+                    }
+                    );
+                };
+                port = 0;
+                protocol = NONE;
+                type = application;
+            }
+        );
+     }
+
+     */
+
+    NSMutableDictionary *candidate = [NSMutableDictionary dictionaryWithDictionary:remoteCandidate];
+
+    if (!candidate[@"candidateDescription"]) {
+        NSString *fakeSDP = [NSString stringWithFormat:@"m=application 0 NONE\r\na=%@\r\n", candidate[@"candidate"]];
+        NSDictionary *candidateInfo = [OpenWebRTCUtils parseSDPFromString:fakeSDP];
+        NSDictionary *candidateDescription = candidateInfo[@"mediaDescriptions"][0][@"ice"][@"candidates"][0];
+        candidate[@"candidateDescription"] = candidateDescription;
+    }
+
     if (candidate && candidate[@"candidateDescription"]) {
         gint index;
         GList *media_sessions;
@@ -352,14 +390,14 @@ static OpenWebRTCNativeHandler *staticSelf;
         gboolean rtcp_mux;
         gchar *ice_ufrag, *ice_password;
 
-        index = [candidate[@"sdpMLineIndex"] intValue];
+        index = [remoteCandidate[@"sdpMLineIndex"] intValue];
 
         media_sessions = g_object_get_data(G_OBJECT(transport_agent), "media-sessions");
         media_session = OWR_MEDIA_SESSION(g_list_nth_data(media_sessions, index));
 
         if (!media_session) {
             NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to find media_session for candidate: %@", candidate);
-            [self.remoteCandidatesCache addObject:remoteCandidate];
+            [self.remoteCandidatesCache addObject:candidate];
             return;
         }
 
@@ -377,13 +415,8 @@ static OpenWebRTCNativeHandler *staticSelf;
         }
 
         NSLog(@"[OpenWebRTCNativeHandler] Handled remote candidate");
-
-        if ([self.remoteCandidatesCache containsObject:remoteCandidate]) {
-            [self.remoteCandidatesCache removeObject:remoteCandidate];
-            NSLog(@"Candidate removed from cache.");
-        }
     } else {
-        NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to parse ICE candidate: %@", candidate);
+        NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to parse ICE candidate: %@", remoteCandidate);
     }
 }
 
@@ -592,14 +625,16 @@ static void send_answer()
 {
     NSString *sdpString = [OpenWebRTCNativeHandler generateSDP];
 
-    NSDictionary *d = @{@"sdp": @{@"sdp": sdpString, @"type": @"answer"}};
+    //NSDictionary *d = @{@"sdp": @{@"sdp": sdpString, @"type": @"answer"}};
+    NSDictionary *d = @{@"sdp": sdpString, @"type": @"answer"};
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:d
                                                        options:NSJSONWritingPrettyPrinted
                                                          error:nil];
     NSString *answer = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
 
     if (staticSelf.delegate) {
-        [staticSelf.delegate answerGenerated:answer];
+        //[staticSelf.delegate answerGenerated:answer];
+        [staticSelf.delegate answerObjectGenerated:d];
     }
 }
 
@@ -755,8 +790,6 @@ static void reset()
 
     g_list_free(local_sources);
     local_sources = NULL;
-    owr_get_capture_sources(OWR_MEDIA_TYPE_AUDIO | OWR_MEDIA_TYPE_VIDEO,
-                            (OwrCaptureSourcesCallback)got_local_sources, NULL);
 }
 
 static void got_local_sources(GList *sources)
@@ -813,6 +846,12 @@ static void got_local_sources(GList *sources)
 
         sources = sources->next;
     }
+
+    // Handle cached remote candidates.
+    for (NSDictionary *candidate in staticSelf.remoteCandidatesCache) {
+        [staticSelf handleRemoteCandidateReceived:candidate];
+    }
+    [staticSelf.remoteCandidatesCache removeAllObjects];
 }
 
 @end

@@ -32,6 +32,7 @@
 @protocol OpenWebRTCNativeHandlerDelegate <NSObject>
 
 - (void)answerGenerated:(NSString *)answer;
+- (void)answerObjectGenerated:(NSDictionary *)answer;
 - (void)offerGenerated:(NSString *)offer;
 - (void)candidateGenerate:(NSString *)candidate;
 
