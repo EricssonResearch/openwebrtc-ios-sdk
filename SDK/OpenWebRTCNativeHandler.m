@@ -105,13 +105,9 @@ static OpenWebRTCNativeHandler *staticSelf;
 
 - (void)initiateCall
 {
+    NSLog(@"::::::::::::: TODO: initiateCall NOT working.");
     NSString *sdpString = [OpenWebRTCNativeHandler generateSDP];
-
-    NSDictionary *d = @{@"sdp": @{@"sdp": sdpString, @"type": @"offer"}};
-    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:d
-                                                       options:NSJSONWritingPrettyPrinted
-                                                         error:nil];
-    NSString *offer = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    NSDictionary *offer = @{@"sdp": sdpString, @"type": @"offer"};
 
     if (staticSelf.delegate) {
         [staticSelf.delegate offerGenerated:offer];
@@ -346,7 +342,6 @@ static OpenWebRTCNativeHandler *staticSelf;
      */
 
     /*
-     po candidateInfo
      {
         mediaDescriptions =     (
             {
@@ -555,6 +550,7 @@ static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpoin
     if (staticSelf.delegate) {
         //[staticSelf.delegate candidateGenerate:@""];
         // TODO: Send candidates.
+        NSLog(@"############################# TODO: Send candidate to other side (ICE trickle).");
     }
 }
 
@@ -624,17 +620,10 @@ static void got_dtls_certificate(GObject *media_session, GParamSpec *pspec, gpoi
 static void send_answer()
 {
     NSString *sdpString = [OpenWebRTCNativeHandler generateSDP];
-
-    //NSDictionary *d = @{@"sdp": @{@"sdp": sdpString, @"type": @"answer"}};
-    NSDictionary *d = @{@"sdp": sdpString, @"type": @"answer"};
-    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:d
-                                                       options:NSJSONWritingPrettyPrinted
-                                                         error:nil];
-    NSString *answer = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    NSDictionary *answer = @{@"sdp": sdpString, @"type": @"answer"};
 
     if (staticSelf.delegate) {
-        //[staticSelf.delegate answerGenerated:answer];
-        [staticSelf.delegate answerObjectGenerated:d];
+        [staticSelf.delegate answerGenerated:answer];
     }
 }
 
