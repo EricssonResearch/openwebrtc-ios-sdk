@@ -31,3 +31,15 @@
 #import <OpenWebRTC-SDK/OpenWebRTCVideoView.h>
 #import <OpenWebRTC-SDK/OpenWebRTCUtils.h>
 #import <OpenWebRTC-SDK/OpenWebRTCNativeHandler.h>
+
+#import "owr.h"
+
+@interface OpenWebRTC : NSObject
+
+/**
+ *  Initializes OpenWebRTC. Should preferably be run inside your AppDelegate's 
+ *  initialize method to ensure OpenWebRTC has enough time to set things up.
+ */
++ (void)initialize;
+
+@end

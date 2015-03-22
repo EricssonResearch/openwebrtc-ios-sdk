@@ -26,25 +26,26 @@
 //  OF SUCH DAMAGE.
 //
 
-#import <UIKit/UIKit.h>
-
+/**
+ *  Various utility methods.
+ */
 @interface OpenWebRTCUtils : NSObject
 
 /**
- Parses an SDP in a string format and returns an dictionary representation.
-
- @param sdpString The SDP as a string.
-
- @return The dictionary representation of the SDP.
- */
+*  Parses an SDP in a string format and returns an dictionary representation.
+*
+*  @param sdpString The SDP as a string.
+*
+*  @return The dictionary representation of the SDP.
+*/
 + (NSDictionary *)parseSDPFromString:(NSString *)sdpString;
 
 /**
- Generates an SDP string from a dictionary representation.
-
- @param sdpObject The SDP object representation.
-
- @return A string representation of the SDP.
+ *  Generates an SDP string from a dictionary representation.
+ *
+ *  @param sdpObject The SDP object representation.
+ *
+ *  @return A string representation of the SDP.
  */
 + (NSString *)generateSDPFromObject:(NSDictionary *)sdpObject;
 
