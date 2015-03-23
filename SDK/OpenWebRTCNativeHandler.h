@@ -35,7 +35,8 @@
 - (void)offerGenerated:(NSDictionary *)offer;
 - (void)candidateGenerate:(NSString *)candidate;
 
-- (void)gotLocalSources;
+- (void)gotLocalSourcesWithNames:(NSArray *)names;
+- (void)gotRemoteSourceWithName:(NSString *)name;
 
 @end
 

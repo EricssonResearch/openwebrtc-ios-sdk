@@ -66,6 +66,13 @@ static OpenWebRTCNativeHandler *staticSelf;
 
 #pragma mark - Public methods.
 
+- (instancetype)init
+{
+    NSLog(@"[OpenWebRTCNativeHandler] ERROR! Use initWithDelegate: instead");
+    [self doesNotRecognizeSelector:_cmd];
+    return nil;
+}
+
 - (instancetype)initWithDelegate:(id <OpenWebRTCNativeHandlerDelegate>)delegate
 {
     if (self = [super init]) {
@@ -456,6 +463,10 @@ static void got_remote_source(OwrMediaSession *media_session, OwrMediaSource *so
 
     owr_media_renderer_set_source(renderer, source);
     renderers = g_list_append(renderers, renderer);
+
+    if (staticSelf.delegate) {
+        [staticSelf.delegate gotRemoteSourceWithName:[NSString stringWithUTF8String:name]];
+    }
 }
 
 static gboolean can_send_answer()
@@ -788,10 +799,6 @@ static void got_local_sources(GList *sources)
     local_sources = g_list_copy(sources);
     transport_agent = owr_transport_agent_new(FALSE);
 
-    if (staticSelf.delegate) {
-        [staticSelf.delegate gotLocalSources];
-    }
-
     for (NSDictionary *server in staticSelf.helperServers) {
         owr_transport_agent_add_helper_server(transport_agent,
                                               (OwrHelperServerType)[server[@"type"] intValue],
@@ -803,6 +810,8 @@ static void got_local_sources(GList *sources)
 
     gboolean have_video = FALSE;
     g_assert(sources);
+
+    NSMutableArray *sourceNames = [NSMutableArray array];
 
     while (sources) {
         gchar *name;
@@ -823,6 +832,8 @@ static void got_local_sources(GList *sources)
                 source_type == OWR_SOURCE_TYPE_CAPTURE ? "capture" : source_type == OWR_SOURCE_TYPE_TEST ? "test" : "unknown",
                 name);
 
+        [sourceNames addObject:[NSString stringWithUTF8String:name]];
+
         if (!have_video && media_type == OWR_MEDIA_TYPE_VIDEO && source_type == OWR_SOURCE_TYPE_CAPTURE) {
             renderer = owr_video_renderer_new(SELF_VIEW_TAG);
             g_assert(renderer);
@@ -834,6 +845,10 @@ static void got_local_sources(GList *sources)
         }
 
         sources = sources->next;
+    }
+
+    if (staticSelf.delegate) {
+        [staticSelf.delegate gotLocalSourcesWithNames:sourceNames];
     }
 
     // Handle cached remote candidates.
