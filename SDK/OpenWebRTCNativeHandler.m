@@ -77,7 +77,8 @@ static OpenWebRTCNativeHandler *staticSelf;
 {
     if (self = [super init]) {
         staticSelf = self;
-        self.delegate = delegate;
+        _delegate = delegate;
+        _settings = [[OpenWebRTCSettings alloc] initWithDefaults];
     }
     return self;
 }
@@ -185,6 +186,9 @@ static OpenWebRTCNativeHandler *staticSelf;
 
         NSArray *payloads = mediaDescription[@"payloads"];
         codec_type = OWR_CODEC_TYPE_NONE;
+
+        OpenWebRTCSettings *settings = staticSelf.settings;
+
         for (int j = 0; j < [payloads count] && codec_type == OWR_CODEC_TYPE_NONE; j++) {
             NSDictionary *payload = payloads[j];
 
@@ -206,8 +210,10 @@ static OpenWebRTCNativeHandler *staticSelf;
 
                 channels = [payload[@"channels"] intValue];
 
-                send_payload = owr_audio_payload_new(codec_type, payload_type, clock_rate,
-                                                     channels);
+                //send_payload = owr_audio_payload_new(codec_type, payload_type, clock_rate, channels);
+                send_payload = owr_audio_payload_new(codec_type, payload_type, clock_rate, settings.audioChannels);
+                g_object_set(send_payload, "bitrate", settings.audioBitrate, NULL);
+
                 receive_payload = owr_audio_payload_new(codec_type, payload_type, clock_rate,
                                                         channels);
             } else if (!g_strcmp0(mtype, "video")) {
@@ -222,10 +228,15 @@ static OpenWebRTCNativeHandler *staticSelf;
                 ccm_fir = [payload[@"ccmfir"] boolValue];
                 nack_pli = [payload[@"nackpli"] boolValue];
 
-                send_payload = owr_video_payload_new(codec_type, payload_type, clock_rate,
-                                                     ccm_fir, nack_pli);
-                receive_payload = owr_video_payload_new(codec_type, payload_type, clock_rate,
-                                                        ccm_fir, nack_pli);
+                send_payload = owr_video_payload_new(codec_type, payload_type, clock_rate, ccm_fir, nack_pli);
+
+                // Update based on specified settings.
+                g_object_set(send_payload, "bitrate", settings.videoBitrate, NULL);
+                g_object_set(send_payload, "width", settings.videoWidth, NULL);
+                g_object_set(send_payload, "height", settings.videoHeight, NULL);
+                g_object_set(send_payload, "framerate", settings.videoFramerate, NULL);
+
+                receive_payload = owr_video_payload_new(codec_type, payload_type, clock_rate, ccm_fir, nack_pli);
             } else
                 g_warn_if_reached();
 
@@ -838,7 +849,9 @@ static void got_local_sources(GList *sources)
             renderer = owr_video_renderer_new(SELF_VIEW_TAG);
             g_assert(renderer);
 
-            g_object_set(renderer, "width", 640, "height", 480, "max-framerate", 25.0, NULL);
+            OpenWebRTCSettings *settings = staticSelf.settings;
+            g_object_set(renderer, "width", settings.videoWidth, "height", settings.videoHeight, "max-framerate", settings.videoFramerate, NULL);
+            g_object_set(renderer, "framerate", settings.videoFramerate, NULL);
 
             owr_media_renderer_set_source(OWR_MEDIA_RENDERER(renderer), source);
             have_video = TRUE;

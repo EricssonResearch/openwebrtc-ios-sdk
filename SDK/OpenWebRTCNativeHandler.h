@@ -28,6 +28,7 @@
 
 #import <Foundation/Foundation.h>
 #import "OpenWebRTCVideoView.h"
+#import "OpenWebRTCSettings.h"
 
 @protocol OpenWebRTCNativeHandlerDelegate <NSObject>
 
@@ -43,6 +44,7 @@
 @interface OpenWebRTCNativeHandler : NSObject
 
 @property (nonatomic, weak) id <OpenWebRTCNativeHandlerDelegate> delegate;
+@property (nonatomic, strong) OpenWebRTCSettings *settings;
 
 - (instancetype)initWithDelegate:(id <OpenWebRTCNativeHandlerDelegate>)delegate;
 
