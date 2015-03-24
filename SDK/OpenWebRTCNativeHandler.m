@@ -851,7 +851,6 @@ static void got_local_sources(GList *sources)
 
             OpenWebRTCSettings *settings = staticSelf.settings;
             g_object_set(renderer, "width", settings.videoWidth, "height", settings.videoHeight, "max-framerate", settings.videoFramerate, NULL);
-            g_object_set(renderer, "framerate", settings.videoFramerate, NULL);
 
             owr_media_renderer_set_source(OWR_MEDIA_RENDERER(renderer), source);
             have_video = TRUE;
