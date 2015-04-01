@@ -1,5 +1,5 @@
 //
-//  OpenWebRTCNativeHandler.h
+//  OpenWebRTCNativeHandler.m
 //
 //  Copyright (c) 2015, Ericsson AB.
 //  All rights reserved.

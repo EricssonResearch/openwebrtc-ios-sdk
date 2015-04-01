@@ -15,11 +15,14 @@ Pod::Spec.new do |s|
 
   ## FOR RELEASE
   s.source = { :http => "http://static.verkstad.net/OpenWebRTC.framework_old.zip" }
-  s.preserve_paths = "OpenWebRTC_framework_#{s.version}/*.framework"
-  s.public_header_files = "OpenWebRTC_framework_#{s.version}/OpenWebRTC.framework/**/*.h"
-  s.vendored_frameworks = "OpenWebRTC_framework_#{s.version}/OpenWebRTC.framework"
+  s.preserve_paths = "*.framework"
+  s.public_header_files = "OpenWebRTC.framework/**/*.h"
+  s.vendored_frameworks = "OpenWebRTC.framework"
+  #s.preserve_paths = "OpenWebRTC_framework_#{s.version}/*.framework"
+  #s.public_header_files = "OpenWebRTC_framework_#{s.version}/OpenWebRTC.framework/**/*.h"
+  #s.vendored_frameworks = "OpenWebRTC_framework_#{s.version}/OpenWebRTC.framework"
 
-  s.frameworks = "JavaScriptCore", "VideoToolbox", "AssetsLibrary", "CoreVideo", "CoreAudio", "CoreGraphics", "OpenGLES", "OpenWebRTC"
+  s.frameworks = "JavaScriptCore", "VideoToolbox", "AssetsLibrary", "CoreVideo", "CoreAudio", "CoreGraphics", "OpenGLES"
   #s.libraries = "c++", "iconv", "resolve"
   s.requires_arc = false
 end
