@@ -21,7 +21,11 @@ The OpenWebRTC SDK is made up of 2 different pods:
 
 ## Fix Header Search Path
 After every run of `pod install` you need to _manually_ add the following to Header Search Paths:
-* `"${PODS_ROOT}/OpenWebRTC/OpenWebRTC_framework_0.1/OpenWebRTC.framework/Headers"` (recursive)
+* `"${PODS_ROOT}/OpenWebRTC/OpenWebRTC.framework/Headers"` (recursive)
+
+and add following dynamic libs to the Frameworks folder of your main project:
+* `libresolv.dylib`
+* `libc++.dylib`
 
 Note that the version (0.1 in the example above) should match the version of the OpenWebRTC pod you are currently installing.
 
