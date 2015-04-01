@@ -504,7 +504,9 @@ static OpenWebRTCNativeHandler *staticSelf;
 
         if (!media_session) {
             NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to find media_session for candidate: %@", candidate);
-            [self.remoteCandidatesCache addObject:candidate];
+            @synchronized (self.remoteCandidatesCache) {
+                [self.remoteCandidatesCache addObject:candidate];
+            }
             return;
         }
 
@@ -1050,10 +1052,12 @@ static void got_local_sources(GList *sources)
     }
 
     // Handle cached remote candidates.
-    for (NSDictionary *candidate in staticSelf.remoteCandidatesCache) {
-        [staticSelf handleRemoteCandidateReceived:candidate];
+    @synchronized (staticSelf.remoteCandidatesCache) {
+        [staticSelf.remoteCandidatesCache enumerateObjectsUsingBlock:^(NSDictionary *candidate, NSUInteger idx, BOOL *stop) {
+            [staticSelf handleRemoteCandidateReceived:candidate];
+        }];
+        [staticSelf.remoteCandidatesCache removeAllObjects];
     }
-    [staticSelf.remoteCandidatesCache removeAllObjects];
 }
 
 void prepare_media_sessions_for_local_sources(bool is_dtls_client)
