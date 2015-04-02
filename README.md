@@ -19,15 +19,10 @@ The OpenWebRTC SDK is made up of 2 different pods:
 
 *WARNING!* There are remaing issues in the .podspec's that requires you to _manually_ fix a few things in your Xcode workspace, see below. We hope to sort these out ASAP. If you have an idea of what might be wrong, let us know!
 
-## Fix Header Search Path and dylibs
-After every run of `pod install` you need to _manually_ add the following to Header Search Paths of the OpenWebRTC-SDK pod target (see figure below):
-* `"${PODS_ROOT}/OpenWebRTC/OpenWebRTC.framework/Headers"` (recursive)
-
-and add the following dynamic libs to the Frameworks folder of your main project:
+## Fix dylibs
+There is currently a [bug](https://github.com/EricssonResearch/openwebrtc-ios-sdk/issues/9) that forces a manual fix. Add the following dynamic libs to the Frameworks folder of your main project:
 * `libresolv.dylib`
 * `libc++.dylib`
-
-![Manual labour](https://github.com/EricssonResearch/openwebrtc-ios-sdk/blob/master/Screenshots/manual_fixes.png)
 
 ## Usage
 Example Podfile:
