@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   s.resources = "Resources/**"
   s.dependency 'OpenWebRTC'
   #s.resource = { :http => "https://github.com/EricssonResearch/openwebrtc/blob/master/bridge/client/sdp.js" }
-  #s.libraries = "c++", "iconv", "resolve", "z"
+  s.libraries = "c++", "resolv"
   s.framework = "OpenWebRTC"
   s.requires_arc = true
 end
