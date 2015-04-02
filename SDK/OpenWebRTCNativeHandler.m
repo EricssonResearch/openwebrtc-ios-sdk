@@ -128,7 +128,6 @@ static OpenWebRTCNativeHandler *staticSelf;
 
 - (void)terminateCall
 {
-    NSLog(@"WARNING! terminateCall Not yet implemented");
     reset();
 }
 
@@ -504,9 +503,11 @@ static OpenWebRTCNativeHandler *staticSelf;
 
         if (!media_session) {
             NSLog(@"[OpenWebRTCNativeHandler] WARNING! Failed to find media_session for candidate: %@", candidate);
+            /*
             @synchronized (self.remoteCandidatesCache) {
                 [self.remoteCandidatesCache addObject:candidate];
             }
+             */
             return;
         }
 
@@ -979,6 +980,10 @@ static void reset()
         g_list_free_full(renderers, g_object_unref);
         renderers = NULL;
     }
+
+    owr_window_registry_unregister(owr_window_registry_get(), SELF_VIEW_TAG);
+    owr_window_registry_unregister(owr_window_registry_get(), REMOTE_VIEW_TAG);
+
     if (transport_agent) {
         media_sessions = g_object_steal_data(G_OBJECT(transport_agent), "media-sessions");
         for (item = media_sessions; item; item = item->next) {
