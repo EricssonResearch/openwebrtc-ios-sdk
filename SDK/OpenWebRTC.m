@@ -27,6 +27,7 @@
 //
 
 #import "OpenWebRTC.h"
+#import <AVFoundation/AVAudioSession.h>
 
 @implementation OpenWebRTC
 
@@ -43,9 +44,24 @@
         static BOOL isInitialized = NO;
         if (!isInitialized) {
             owr_init(NULL);
-            NSLog(@"OpenWebRTC initialized");
             owr_run_in_background();
+
+            NSError* theError = nil;
+            AVAudioSession *myAudioSession = [AVAudioSession sharedInstance];
+            BOOL result = [myAudioSession setCategory:AVAudioSessionCategoryPlayAndRecord error:&theError];
+
+            if (!result) {
+                NSLog(@"[OpenWebRTC] ERROR! AVAudioSession setCategory failed");
+            }
+
+            result = [myAudioSession setActive:YES error:&theError];
+            if (!result) {
+                NSLog(@"[OpenWebRTC] ERROR! AVAudioSession setActive failed");
+            }
+
+            NSLog(@"[OpenWebRTC] initialized correctly!");
         }
+
         isInitialized = YES;
     }
 }
