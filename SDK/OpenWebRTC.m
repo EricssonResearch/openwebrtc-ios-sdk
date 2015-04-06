@@ -28,14 +28,6 @@
 
 #import "OpenWebRTC.h"
 
-static gpointer owr_run(GMainLoop *main_loop)
-{
-    g_return_val_if_fail(main_loop, NULL);
-    NSLog(@"[OpenWebRTC] initialized");
-    g_main_loop_run(main_loop);
-    return NULL;
-}
-
 @implementation OpenWebRTC
 
 - (instancetype)init
@@ -50,13 +42,9 @@ static gpointer owr_run(GMainLoop *main_loop)
     if (self == [OpenWebRTC class]) {
         static BOOL isInitialized = NO;
         if (!isInitialized) {
-            GMainContext *main_context;
-            GMainLoop *main_loop;
-
-            main_context = g_main_context_default();
-            owr_init_with_main_context(main_context);
-            main_loop = g_main_loop_new(NULL, FALSE);
-            g_thread_new("owr_main_loop", (GThreadFunc) owr_run, main_loop);
+            owr_init(NULL);
+            NSLog(@"OpenWebRTC initialized");
+            owr_run_in_background();
         }
         isInitialized = YES;
     }
