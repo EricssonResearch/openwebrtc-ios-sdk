@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "OpenWebRTC"
-  s.version      = "0.1.3"
+  s.version      = "0.1.4"
   s.summary      = "OpenWebRTC.framework wrapped in a CocoaPod"
   s.homepage     = "http://www.openwebrtc.io"
   s.license      = { :type => "BSD-2", :file => "LICENSE" }
@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   #s.header_mappings_dir = "OpenWebRTC.framework"
 
   ## FOR RELEASE
-  s.source = { :http => "http://static.verkstad.net/OpenWebRTC_0.1.3.zip" }
+  s.source = { :http => "http://static.verkstad.net/OpenWebRTC_0.1.4.zip" }
   s.preserve_paths = "*.framework"
   s.public_header_files = "OpenWebRTC.framework/Versions/0.1/Headers/**/*.h"
   s.header_mappings_dir = "OpenWebRTC.framework/Versions/0.1/Headers"
