@@ -42,7 +42,7 @@ static JSContext *_context;
         if (_context == nil) {
             _context = [[JSContext alloc] init];
 
-            NSString *path = [[NSBundle mainBundle] pathForResource:@"sdp" ofType:@"js"];
+            NSString *path = [[NSBundle bundleForClass:[self class]] pathForResource:@"sdp" ofType:@"js"];
             if (path) {
                 NSError *error;
                 NSURL *fileURL = [NSURL fileURLWithPath:path];
