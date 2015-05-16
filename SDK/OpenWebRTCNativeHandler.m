@@ -537,8 +537,10 @@ static OpenWebRTCNativeHandler *staticSelf;
         types = OWR_MEDIA_TYPE_AUDIO | OWR_MEDIA_TYPE_VIDEO;
     } else if (audio) {
         types = OWR_MEDIA_TYPE_AUDIO;
-    } else {
+    } else if (video) {
         types = OWR_MEDIA_TYPE_VIDEO;
+    } else {
+        types = OWR_MEDIA_TYPE_UNKNOWN;
     }
 
     owr_get_capture_sources(types, (OwrCaptureSourcesCallback)got_local_sources, NULL);
@@ -1014,7 +1016,6 @@ static void got_local_sources(GList *sources)
     }
 
     gboolean have_video = FALSE;
-    g_assert(sources);
 
     NSMutableArray *sourceNames = [NSMutableArray array];
 
