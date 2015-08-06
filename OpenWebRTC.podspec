@@ -2,7 +2,7 @@ Pod::Spec.new do |s|
   s.name         = "OpenWebRTC"
   s.version      = "0.3.1"
   s.summary      = "OpenWebRTC.framework wrapped in a CocoaPod"
-  s.homepage     = "http://www.openwebrtc.io"
+  s.homepage     = "http://www.openwebrtc.org"
   s.license      = { :type => "BSD-2", :file => "LICENSE" }
   s.author       = { "Ericsson AB" => "labs@ericsson.com" }
   s.social_media_url = "https://twitter.com/OpenWebRTC"
