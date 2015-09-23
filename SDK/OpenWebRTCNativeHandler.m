@@ -983,8 +983,9 @@ static void reset()
         renderers = NULL;
     }
 
-    owr_window_registry_unregister(owr_window_registry_get(), SELF_VIEW_TAG);
-    owr_window_registry_unregister(owr_window_registry_get(), REMOTE_VIEW_TAG);
+    // Don't unregister the views to prevent frozen video after hangup
+    //owr_window_registry_unregister(owr_window_registry_get(), SELF_VIEW_TAG);
+    //owr_window_registry_unregister(owr_window_registry_get(), REMOTE_VIEW_TAG);
 
     if (transport_agent) {
         media_sessions = g_object_steal_data(G_OBJECT(transport_agent), "media-sessions");
