@@ -2,7 +2,7 @@
 ![pod version](https://img.shields.io/cocoapods/v/OpenWebRTC.svg) [![Badge w/ Platform](http://img.shields.io/cocoapods/p/OpenWebRTC.svg?style=flat)](https://cocoadocs.org/docsets/OpenWebRTC)
 
 # [WIP] OpenWebRTC iOS SDK
-SDK for adding OpenWebRTC to your iOS apps using CocoaPods 
+SDK for adding OpenWebRTC to your iOS apps using CocoaPods
 
 
 ## Installation
@@ -35,6 +35,6 @@ target 'NativeDemo' do
 end
 ```
 
-## Overview
-
-As a quick overview, there are the classes to know to use the SDK.
+## Change log
+#### 0.2.0
+* Added classes for Hybrid (mixed native and WebView) app development
