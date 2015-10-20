@@ -15,14 +15,13 @@ The SDK uses [CocoaPods](http://cocoapods.org) as library dependency manager. In
 The OpenWebRTC SDK is made up of 2 different pods:
 
 * `OpenWebRTC` - Contains the pre-build framework `OpenWebRTC.framework`.
-* `OpenWebRTC-SDK` - Contains helper classes for quickly developing native apps. Currently available only as a Development Pod, meaning that you need need to reference its location by `:path` (example below).
+* `OpenWebRTC-SDK` - Contains helper classes for quickly developing native and hybrid apps. 
 
-*WARNING!* There are remaing issues in the .podspec's that requires you to _manually_ fix a few things in your Xcode workspace, see below. We hope to sort these out ASAP. If you have an idea of what might be wrong, let us know!
-
-## Fix dylibs
-There is currently a [bug](https://github.com/EricssonResearch/openwebrtc-ios-sdk/issues/9) that forces a manual fix. Add the following dynamic libs to the Frameworks folder of your main project:
-* `libresolv.dylib`
-* `libc++.dylib`
+## CocoaPods > 0.38.2 problems
+There is currently a [problem](https://github.com/EricssonResearch/openwebrtc-ios-sdk/issues/30) with versions of CocoaPods that are newer than `0.38.2`. If you are on a newer version, e.g. `0.39.0`, one solution is to downgrade your installation:
+```
+sudo gem install cocoapods -v 0.38.2
+```
 
 ## Usage
 Example Podfile:
