@@ -79,7 +79,7 @@
     if (!tag)
         return;
 
-    /* Check if renderer has already been set up. */
+    // Check if renderer has already been set up.
     if (![renderers valueForKey:tag]) {
         id renderView = [@"capture" isEqualToString:msg[@"sourceType"]] ? self.selfView : self.remoteView;
         owr_window_registry_register(owr_window_registry_get(),
@@ -87,8 +87,6 @@
                                      (__bridge gpointer)(renderView));
 
         [renderers setObject:msg[@"sourceType"] forKey:tag];
-        self.browserView.hidden = YES;
-        self.selfView.hidden = NO;
     }
 }
 

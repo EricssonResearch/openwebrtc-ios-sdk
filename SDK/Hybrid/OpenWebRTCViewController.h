@@ -32,9 +32,6 @@
 #import "OpenWebRTCWebView.h"
 
 @interface OpenWebRTCViewController : UIViewController <WKNavigationDelegate, WKScriptMessageHandler, OpenWebRTCWebViewDelegate>
-{
-    NSTimer *pageNavigationTimer;
-}
 
 @property (nonatomic, strong) IBOutlet OpenWebRTCVideoView *selfView;
 @property (nonatomic, strong) IBOutlet OpenWebRTCVideoView *remoteView;
@@ -42,6 +39,7 @@
 @property (nonatomic, strong) NSString *javascriptCode;
 
 + (void)initOpenWebRTC;
+
 - (void)loadRequestWithURL:(NSString *)url;
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message;
 
