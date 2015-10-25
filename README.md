@@ -35,5 +35,8 @@ end
 ```
 
 ## Change log
+#### 0.2.1
+* Minor changes to view handling for hybrid apps
+
 #### 0.2.0
 * Added classes for Hybrid (mixed native and WebView) app development
