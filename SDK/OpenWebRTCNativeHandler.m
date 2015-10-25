@@ -785,6 +785,16 @@ static void send_offer()
             payload[@"ccmfir"] = [NSNumber numberWithBool:ccm_fir];
             nack_pli = GPOINTER_TO_UINT(g_object_steal_data(media_session, "nack-pli"));
             payload[@"nackpli"] = [NSNumber numberWithBool:nack_pli];
+
+            if (!g_strcmp0(encoding_name, "H264")) {
+                // Needed for Firefox H.264 interop.
+                NSDictionary *params = @{
+                                         @"levelAsymmetryAllowed": @1,
+                                         @"packetizationMode": @1,
+                                         @"profileLevelId": @"42e01f"
+                                         };
+                payload[@"parameters"] = params;
+            }
         } else {
             g_warn_if_reached();
         }
