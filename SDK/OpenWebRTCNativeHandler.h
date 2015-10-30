@@ -36,8 +36,12 @@
 - (void)offerGenerated:(NSDictionary *)offer;
 - (void)candidateGenerate:(NSString *)candidate;
 
-- (void)gotLocalSourcesWithNames:(NSArray *)names;
-- (void)gotRemoteSourceWithName:(NSString *)name;
+/**
+ * Format of sources:
+ * [{'name':xxx, 'source':xxx, 'mediaType':'audio' or 'video'}, {}, ...]
+ */
+- (void)gotLocalSources:(NSArray *)sources;
+- (void)gotRemoteSource:(NSDictionary *)source;
 
 @end
 
@@ -60,5 +64,10 @@
 - (void)handleOfferReceived:(NSString *)offer;
 - (void)handleAnswerReceived:(NSString *)answer;
 - (void)handleRemoteCandidateReceived:(NSDictionary *)candidate;
+
+- (void)setVideoCaptureSourceByName:(NSString *)name;
+- (void)videoView:(OpenWebRTCVideoView *)videoView setVideoRotation:(NSInteger)degrees;
+- (void)videoView:(OpenWebRTCVideoView *)videoView setMirrored:(BOOL)isMirrored;
+- (NSInteger)rotationForVideoView:(OpenWebRTCVideoView *)videoView;
 
 @end
