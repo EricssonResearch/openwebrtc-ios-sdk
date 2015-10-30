@@ -45,7 +45,8 @@
 #define SELF_VIEW_TAG "self-view"
 #define REMOTE_VIEW_TAG "remote-view"
 
-OwrVideoRenderer *renderer;
+OwrVideoRenderer *local_video_renderer;
+OwrVideoRenderer *remote_video_renderer;
 
 static GList *local_sources, *renderers;
 static OwrTransportAgent *transport_agent;
@@ -59,9 +60,14 @@ static void got_local_sources(GList *sources);
 static OpenWebRTCNativeHandler *staticSelf;
 
 @interface OpenWebRTCNativeHandler ()
+{
+    OpenWebRTCVideoView *_selfView;
+    OpenWebRTCVideoView *_remoteView;
+}
 
 @property (nonatomic, strong) NSMutableArray *helperServers;
 @property (nonatomic, strong) NSMutableArray *remoteCandidatesCache;
+@property (nonatomic, strong) NSMutableArray *localSourceArray;
 
 @end
 
@@ -86,13 +92,65 @@ static OpenWebRTCNativeHandler *staticSelf;
     return self;
 }
 
+- (void)videoView:(OpenWebRTCVideoView *)videoView setVideoRotation:(NSInteger)degrees
+{
+    OwrVideoRenderer *renderer;
+    if (videoView == _selfView) {
+        renderer = local_video_renderer;
+    } else if (videoView == _remoteView) {
+        renderer = remote_video_renderer;
+    } else {
+        NSLog(@"WARNING! No OwrVideoRenderer, cannot update rotation");
+        return;
+    }
+
+    NSLog(@"[OpenWebRTC] Setting video rotation to: %ld", (long)degrees);
+
+    guint rotation = (guint)(degrees / 90);
+    g_object_set(renderer, "rotation", (rotation + 1) % 4, NULL);
+}
+
+- (NSInteger)rotationForVideoView:(OpenWebRTCVideoView *)videoView
+{
+    OwrVideoRenderer *renderer;
+    if (videoView == _selfView) {
+        renderer = local_video_renderer;
+    } else if (videoView == _remoteView) {
+        renderer = remote_video_renderer;
+    } else {
+        NSLog(@"WARNING! No OwrVideoRenderer, cannot get proper rotation");
+        return 0;
+    }
+    guint current_rotation;
+    g_object_get(renderer, "rotation", &current_rotation, NULL);
+    return current_rotation * 90;
+}
+
+- (void)videoView:(OpenWebRTCVideoView *)videoView setMirrored:(BOOL)isMirrored
+{
+    OwrVideoRenderer *renderer;
+    if (videoView == _selfView) {
+        renderer = local_video_renderer;
+    } else if (videoView == _remoteView) {
+        renderer = remote_video_renderer;
+    } else {
+        NSLog(@"WARNING! No OwrVideoRenderer, update mirrored state");
+        return;
+    }
+
+    NSLog(@"[OpenWebRTC] Setting video mirrored: %d", isMirrored);
+    g_object_set(renderer, "mirror", isMirrored, NULL);
+}
+
 - (void)setSelfView:(OpenWebRTCVideoView *)selfView
 {
+    _selfView = selfView;
     owr_window_registry_register(owr_window_registry_get(), SELF_VIEW_TAG, (__bridge gpointer)(selfView));
 }
 
 - (void)setRemoteView:(OpenWebRTCVideoView *)remoteView
 {
+    _remoteView = remoteView;
     owr_window_registry_register(owr_window_registry_get(), REMOTE_VIEW_TAG, (__bridge gpointer)(remoteView));
 }
 
@@ -565,6 +623,7 @@ static void got_remote_source(OwrMediaSession *media_session, OwrMediaSource *so
         renderer = OWR_MEDIA_RENDERER(owr_audio_renderer_new());
     } else if (media_type == OWR_MEDIA_TYPE_VIDEO) {
         renderer = OWR_MEDIA_RENDERER(owr_video_renderer_new(REMOTE_VIEW_TAG));
+        remote_video_renderer = (OwrVideoRenderer *)renderer;
     } else {
         g_return_if_reached();
     }
@@ -573,7 +632,11 @@ static void got_remote_source(OwrMediaSession *media_session, OwrMediaSource *so
     renderers = g_list_append(renderers, renderer);
 
     if (staticSelf.delegate) {
-        [staticSelf.delegate gotRemoteSourceWithName:[NSString stringWithUTF8String:name]];
+        NSDictionary *remoteSource = @{@"name": [NSString stringWithUTF8String:name],
+                                       @"source": [NSValue valueWithPointer:source],
+                                       @"mediaType": media_type == OWR_MEDIA_TYPE_AUDIO ? @"audio" : @"video"
+                                       };
+        [staticSelf.delegate gotRemoteSource:remoteSource];
     }
 }
 
@@ -1006,6 +1069,9 @@ static void reset()
 
     g_list_free(local_sources);
     local_sources = NULL;
+    local_video_renderer = NULL;
+    remote_video_renderer = NULL;
+    staticSelf.localSourceArray = [NSMutableArray array];
 }
 
 static void got_local_sources(GList *sources)
@@ -1024,7 +1090,7 @@ static void got_local_sources(GList *sources)
 
     gboolean have_video = FALSE;
 
-    NSMutableArray *sourceNames = [NSMutableArray array];
+    staticSelf.localSourceArray = [NSMutableArray array];
 
     while (sources) {
         gchar *name;
@@ -1045,23 +1111,27 @@ static void got_local_sources(GList *sources)
                 source_type == OWR_SOURCE_TYPE_CAPTURE ? "capture" : source_type == OWR_SOURCE_TYPE_TEST ? "test" : "unknown",
                 name);
 
-        [sourceNames addObject:[NSString stringWithUTF8String:name]];
+        [staticSelf.localSourceArray addObject:@{@"name": [NSString stringWithUTF8String:name],
+                                 @"source": [NSValue valueWithPointer:source],
+                                 @"mediaType": media_type == OWR_MEDIA_TYPE_AUDIO ? @"audio" : @"video"
+                                 }];
 
         if (!have_video && media_type == OWR_MEDIA_TYPE_VIDEO && source_type == OWR_SOURCE_TYPE_CAPTURE) {
-            renderer = owr_video_renderer_new(SELF_VIEW_TAG);
-            g_assert(renderer);
+            local_video_renderer = owr_video_renderer_new(SELF_VIEW_TAG);
+            g_assert(local_video_renderer);
 
             OpenWebRTCSettings *settings = staticSelf.settings;
-            g_object_set(renderer, "width", settings.videoWidth, "height", settings.videoHeight, "max-framerate", settings.videoFramerate, NULL);
+            g_object_set(local_video_renderer, "width", settings.videoWidth, "height", settings.videoHeight, "max-framerate", settings.videoFramerate, NULL);
 
-            owr_media_renderer_set_source(OWR_MEDIA_RENDERER(renderer), source);
+            renderers = g_list_append(renderers, local_video_renderer);
+            owr_media_renderer_set_source(OWR_MEDIA_RENDERER(local_video_renderer), source);
             have_video = TRUE;
         }
         sources = sources->next;
     }
 
     if (staticSelf.delegate) {
-        [staticSelf.delegate gotLocalSourcesWithNames:sourceNames];
+        [staticSelf.delegate gotLocalSources:staticSelf.localSourceArray];
     }
 
     // Handle cached remote candidates.
@@ -1071,6 +1141,19 @@ static void got_local_sources(GList *sources)
         }];
         [staticSelf.remoteCandidatesCache removeAllObjects];
     }
+}
+
+- (void)setVideoCaptureSourceByName:(NSString *)name
+{
+    for (NSDictionary *localSource in self.localSourceArray) {
+        if ([name isEqualToString:localSource[@"name"]]) {
+            OwrMediaSource *source = [localSource[@"source"] pointerValue];
+            NSLog(@"[OpenWebRTCNativeHandler] Switching to local source %@ : %p", localSource[@"name"], source);
+            owr_media_renderer_set_source(OWR_MEDIA_RENDERER(local_video_renderer), source);
+            return;
+        }
+    }
+    NSLog(@"[OpenWebRTCNativeHandler] WARNING! Could not find source with name %@", name);
 }
 
 void prepare_media_sessions_for_local_sources(bool is_dtls_client)
