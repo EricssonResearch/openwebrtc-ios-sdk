@@ -29,6 +29,15 @@ platform :ios, '8.0'
 
 target 'NativeDemo' do
     pod 'OpenWebRTC', '~> 0.1'
+    pod 'OpenWebRTC-SDK',  :git => 'https://github.com/EricssonResearch/openwebrtc-ios-sdk.git'
+end
+```
+or
+```
+platform :ios, '8.0'
+
+target 'NativeDemo' do
+    pod 'OpenWebRTC'
     pod 'OpenWebRTC-SDK', :path => '../../../openwebrtc-ios-sdk/OpenWebRTC-SDK.podspec'
 end
 ```
@@ -38,7 +47,60 @@ Apps that use the OpenWebRTC iOS SDK:
 * [NativeDemo](https://github.com/EricssonResearch/openwebrtc-examples/tree/master/ios/NativeDemo)
 * [Bowser](https://github.com/EricssonResearch/bowser)
 
+## API
+The entry point class for Native app developement is `OpenWebRTCNativeHandler`:
+
+```
+@protocol OpenWebRTCNativeHandlerDelegate <NSObject>
+
+- (void)answerGenerated:(NSDictionary *)answer;
+- (void)offerGenerated:(NSDictionary *)offer;
+- (void)candidateGenerate:(NSString *)candidate;
+
+/**
+ * Format of sources:
+ * [{'name':xxx, 'source':xxx, 'mediaType':'audio' or 'video'}, {}, ...]
+ */
+- (void)gotLocalSources:(NSArray *)sources;
+- (void)gotRemoteSource:(NSDictionary *)source;
+
+@end
+
+@interface OpenWebRTCNativeHandler : NSObject
+
+@property (nonatomic, weak) id <OpenWebRTCNativeHandlerDelegate> delegate;
+@property (nonatomic, strong) OpenWebRTCSettings *settings;
+
+- (instancetype)initWithDelegate:(id <OpenWebRTCNativeHandlerDelegate>)delegate;
+
+- (void)setSelfView:(OpenWebRTCVideoView *)selfView;
+- (void)setRemoteView:(OpenWebRTCVideoView *)remoteView;
+- (void)addSTUNServerWithAddress:(NSString *)address port:(NSInteger)port;
+- (void)addTURNServerWithAddress:(NSString *)address port:(NSInteger)port username:(NSString *)username password:(NSString *)password isTCP:(BOOL)isTCP;
+
+- (void)startGetCaptureSourcesForAudio:(BOOL)audio video:(BOOL)video;
+- (void)initiateCall;
+- (void)terminateCall;
+
+- (void)handleOfferReceived:(NSString *)offer;
+- (void)handleAnswerReceived:(NSString *)answer;
+- (void)handleRemoteCandidateReceived:(NSDictionary *)candidate;
+
+- (void)setVideoCaptureSourceByName:(NSString *)name;
+- (void)videoView:(OpenWebRTCVideoView *)videoView setVideoRotation:(NSInteger)degrees;
+- (void)videoView:(OpenWebRTCVideoView *)videoView setMirrored:(BOOL)isMirrored;
+- (NSInteger)rotationForVideoView:(OpenWebRTCVideoView *)videoView;
+
+@end
+```
+
 ## Change log
+#### 0.3
+New APIs for:
+* Setting video capture device (camera)
+* Setting and getting video rotation per video view
+* Setting mirroring per video view
+
 #### 0.2.1
 * Minor changes to view handling for hybrid apps
 
