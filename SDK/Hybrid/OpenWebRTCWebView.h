@@ -35,6 +35,8 @@
 - (void)webviewProgress:(float)progress;
 - (void)newOwrMessage:(NSString*)message;
 - (void)newVideoRect:(CGRect)rect forSelfView:(BOOL)rectIsSelfView;
+- (void)newVideoRect:(CGRect)rect rotation:(int)degrees tag:(NSString *)tag;
+
 @end
 
 @interface OpenWebRTCWebView : WKWebView
