@@ -101,6 +101,7 @@
         "    var xhr = new XMLHttpRequest();"
         "    xhr.open(\"GET\", \"" kBridgeLocalURL "\", false);"
         "    xhr.send();"
+        "    window.navigator.__owrVideoOverlaySupport = true;"
         "    eval(xhr.responseText);"
         "})()";
 
