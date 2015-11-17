@@ -63,16 +63,22 @@
 
         completionHandler();
     } else {
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Alert!"
-                                                                       message:message
-                                                                preferredStyle:UIAlertControllerStyleAlert];
+        if ([self.owrDelegate isKindOfClass:[UIViewController class]]) {
+            UIViewController *parent = (UIViewController *)self.owrDelegate;
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Alert!"
+                                                                           message:message
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
 
-        UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK"
-                                                           style:UIAlertActionStyleDefault
-                                                         handler:^(UIAlertAction * action) {
-                                                             completionHandler();
-                                                         }];
-        [alert addAction:okAction];
+            UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK"
+                                                               style:UIAlertActionStyleDefault
+                                                             handler:^(UIAlertAction * action) {
+                                                                 completionHandler();
+                                                             }];
+            [alert addAction:okAction];
+            [parent presentViewController:alert animated:YES completion:nil];
+        } else {
+            completionHandler();
+        }
     }
 }
 
