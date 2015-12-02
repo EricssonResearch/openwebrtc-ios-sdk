@@ -148,10 +148,24 @@ static OpenWebRTCNativeHandler *staticSelf;
     owr_window_registry_register(owr_window_registry_get(), SELF_VIEW_TAG, (__bridge gpointer)(selfView));
 }
 
+- (void) removeSelfView:(OpenWebRTCVideoView *) selfView
+{
+    if(_selfView) {
+        owr_window_registry_unregister(owr_window_registry_get(), SELF_VIEW_TAG);
+    }
+}
+
 - (void)setRemoteView:(OpenWebRTCVideoView *)remoteView
 {
     _remoteView = remoteView;
     owr_window_registry_register(owr_window_registry_get(), REMOTE_VIEW_TAG, (__bridge gpointer)(remoteView));
+}
+
+- (void)removeRemoteView:(OpenWebRTCVideoView *)remoteView
+{
+    if(_remoteView) {
+        owr_window_registry_unregister(owr_window_registry_get(), REMOTE_VIEW_TAG);
+    }
 }
 
 - (void)addSTUNServerWithAddress:(NSString *)address port:(NSInteger)port
