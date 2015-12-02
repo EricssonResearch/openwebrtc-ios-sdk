@@ -148,7 +148,7 @@ static OpenWebRTCNativeHandler *staticSelf;
     owr_window_registry_register(owr_window_registry_get(), SELF_VIEW_TAG, (__bridge gpointer)(selfView));
 }
 
-- (void) removeSelfView:(OpenWebRTCVideoView *) selfView
+- (void) removeSelfView
 {
     if(_selfView) {
         owr_window_registry_unregister(owr_window_registry_get(), SELF_VIEW_TAG);
@@ -161,7 +161,7 @@ static OpenWebRTCNativeHandler *staticSelf;
     owr_window_registry_register(owr_window_registry_get(), REMOTE_VIEW_TAG, (__bridge gpointer)(remoteView));
 }
 
-- (void)removeRemoteView:(OpenWebRTCVideoView *)remoteView
+- (void)removeRemoteView
 {
     if(_remoteView) {
         owr_window_registry_unregister(owr_window_registry_get(), REMOTE_VIEW_TAG);

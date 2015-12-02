@@ -53,9 +53,9 @@
 - (instancetype)initWithDelegate:(id <OpenWebRTCNativeHandlerDelegate>)delegate;
 
 - (void)setSelfView:(OpenWebRTCVideoView *)selfView;
-- (void)removeSelfView:(OpenWebRTCVideoView *)selfView;
+- (void)removeSelfView;
 - (void)setRemoteView:(OpenWebRTCVideoView *)remoteView;
-- (void)removeRemoteView:(OpenWebRTCVideoView *)remoteView;
+- (void)removeRemoteView;
 - (void)addSTUNServerWithAddress:(NSString *)address port:(NSInteger)port;
 - (void)addTURNServerWithAddress:(NSString *)address port:(NSInteger)port username:(NSString *)username password:(NSString *)password isTCP:(BOOL)isTCP;
 
