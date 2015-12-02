@@ -15,12 +15,6 @@ The OpenWebRTC SDK is made up of 2 different pods:
 * `OpenWebRTC` - Contains the pre-build framework `OpenWebRTC.framework`.
 * `OpenWebRTC-SDK` - Contains helper classes for quickly developing native and hybrid apps. 
 
-## CocoaPods > 0.38.2 problems
-There is currently a [problem](https://github.com/EricssonResearch/openwebrtc-ios-sdk/issues/30) with versions of CocoaPods that are newer than `0.38.2`. If you are on a newer version, e.g. `0.39.0`, one solution is to downgrade your installation:
-```
-sudo gem install cocoapods -v 0.38.2
-```
-
 ## Usage
 Example Podfile:
 ```

@@ -18,4 +18,8 @@ Pod::Spec.new do |s|
   s.libraries = "c++", "resolv"
   s.framework = "OpenWebRTC", "WebKit"
   s.requires_arc = true
+
+  s.xcconfig = {
+    'HEADER_SEARCH_PATHS' => '"${PODS_ROOT}/Headers/Public/**"'
+  }
 end
