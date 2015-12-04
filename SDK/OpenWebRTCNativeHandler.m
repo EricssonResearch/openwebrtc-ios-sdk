@@ -719,9 +719,38 @@ static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpoin
     local_candidates = g_object_get_data(media_session, "local-candidates");
     local_candidates = g_list_append(local_candidates, candidate);
     g_object_set_data(media_session, "local-candidates", local_candidates);
+    
+    OwrCandidateType candidate_type;
+    OwrComponentType component_type;
+    OwrTransportType transport_type;
+    gchar *foundation, *address, *related_address;
+    gint port, priority, related_port;
+    g_object_get(candidate, "type", &candidate_type, "component-type", &component_type,
+                 "foundation", &foundation, "transport-type", &transport_type, "address", &address,
+                 "port", &port, "priority", &priority, "base-address", &related_address,
+                 "base-port", &related_port, NULL);
+    NSString *candidateString = [NSString stringWithFormat:@"candidate:%@ %@ %@ %@ %@ %@ typ %@",
+                                 [NSString stringWithUTF8String:foundation],
+                                 [NSNumber numberWithInt:component_type],
+                                 (transport_type == OWR_TRANSPORT_TYPE_UDP ? @"UDP" : @"TCP"),
+                                 [NSNumber numberWithInt:priority],
+                                 [NSString stringWithUTF8String:address],
+                                 [NSNumber numberWithInt:port],
+                                 [NSString stringWithUTF8String:candidate_types[candidate_type]]];
+    
+    if (candidate_type != OWR_CANDIDATE_TYPE_HOST) {
+        candidateString = [candidateString stringByAppendingString:[NSString stringWithFormat:@" raddr %@ rport %@", [NSString stringWithUTF8String:related_address], [NSNumber numberWithInt:related_port]]];
+    }
+    if (transport_type != OWR_TRANSPORT_TYPE_UDP) {
+        candidateString = [candidateString stringByAppendingString:[NSString stringWithFormat:@" tcptype %@", [NSString stringWithUTF8String:tcp_types[transport_type]]]];
+    }
+    
+    g_free(foundation);
+    g_free(address);
+    g_free(related_address);
 
     if (staticSelf.delegate) {
-        //[staticSelf.delegate candidateGenerate:@""];
+        [staticSelf.delegate candidateGenerate:candidateString];
         // TODO: Send candidates.
         NSLog(@"############################# TODO: Send candidate to other side (ICE trickle).");
     }
