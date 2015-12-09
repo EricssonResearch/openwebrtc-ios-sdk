@@ -152,6 +152,7 @@ static OpenWebRTCNativeHandler *staticSelf;
 {
     if (_selfView) {
         owr_window_registry_unregister(owr_window_registry_get(), SELF_VIEW_TAG);
+        _selfView = nil;
     }
 }
 
@@ -165,6 +166,7 @@ static OpenWebRTCNativeHandler *staticSelf;
 {
     if (_remoteView) {
         owr_window_registry_unregister(owr_window_registry_get(), REMOTE_VIEW_TAG);
+        _remoteView = nil;
     }
 }
 
