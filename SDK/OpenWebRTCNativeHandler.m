@@ -753,8 +753,6 @@ static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpoin
 
     if (staticSelf.delegate) {
         [staticSelf.delegate candidateGenerate:candidateString];
-        // TODO: Send candidates.
-        NSLog(@"############################# TODO: Send candidate to other side (ICE trickle).");
     }
 }
 
