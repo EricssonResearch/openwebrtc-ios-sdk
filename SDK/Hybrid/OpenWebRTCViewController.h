@@ -36,10 +36,11 @@
 @property (nonatomic, strong) IBOutlet OpenWebRTCVideoView *selfView;
 @property (nonatomic, strong) IBOutlet OpenWebRTCVideoView *remoteView;
 @property (strong, nonatomic) IBOutlet OpenWebRTCWebView *browserView;
-@property (nonatomic, strong) NSString *javascriptCode;
 
 + (void)initOpenWebRTC;
 
+- (void)setOverlayVideoRenderingEnabled:(BOOL)isEnabled;
+- (BOOL)isOverlayVideoRenderingEnabled;
 - (void)loadRequestWithURL:(NSString *)url;
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message;
 

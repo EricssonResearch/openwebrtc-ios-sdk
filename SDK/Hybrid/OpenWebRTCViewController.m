@@ -35,13 +35,16 @@
 #include <owr/owr_window_registry.h>
 
 #define kBridgeLocalURL @"http://localhost:10717/owr.js"
+#define kOverlayToggleTemplate @"(function () {window.navigator.__owrVideoOverlaySupport = %@;})()"
 
 @interface OpenWebRTCViewController ()
 {
     NSString *_URL;
-
     NSMutableDictionary *renderers;
+    BOOL isOverlayVideoRenderingEnabled;
 }
+
+@property (nonatomic, strong) NSString *bridgeScript;
 
 @end
 
@@ -70,6 +73,40 @@
     }
 }
 
+- (void)injectJavaScript:(NSString *)script
+{
+    if (!self.browserView) {
+        NSLog(@"[OpenWebRTC] WARNING! Cannot inject custom JavaScript");
+        return;
+    }
+
+    WKUserScript *userScript = [[WKUserScript alloc] initWithSource:script
+                                                      injectionTime:WKUserScriptInjectionTimeAtDocumentStart
+                                                   forMainFrameOnly:YES];
+    [self.browserView.configuration.userContentController addUserScript:userScript];
+
+    NSLog(@"JS injected:\n%@", script);
+}
+
+- (void)setOverlayVideoRenderingEnabled:(BOOL)isEnabled
+{
+    NSLog(@"[OpenWebRTC] Setting overlay video rendering enabled: %d", isEnabled);
+
+    if (isEnabled == isOverlayVideoRenderingEnabled) {
+        return;
+    }
+
+    isOverlayVideoRenderingEnabled = isEnabled;
+
+    NSString *js = [NSString stringWithFormat:kOverlayToggleTemplate, isEnabled ? @"true" : @"false"];
+    [self injectJavaScript:js];
+}
+
+- (BOOL)isOverlayVideoRenderingEnabled
+{
+    return isOverlayVideoRenderingEnabled;
+}
+
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message
 {
     NSDictionary *msg = (NSDictionary *)[message body];
@@ -96,12 +133,11 @@
 
     renderers = [NSMutableDictionary dictionary];
 
-    self.javascriptCode = @
+    self.bridgeScript = @
         "(function () {"
         "    var xhr = new XMLHttpRequest();"
         "    xhr.open(\"GET\", \"" kBridgeLocalURL "\", false);"
         "    xhr.send();"
-        "    window.navigator.__owrVideoOverlaySupport = true;"
         "    eval(xhr.responseText);"
         "})()";
 
@@ -111,10 +147,8 @@
     self.browserView.owrDelegate = self;
     self.browserView.navigationDelegate = self;
 
-    WKUserScript *userScript = [[WKUserScript alloc] initWithSource:self.javascriptCode
-                                                      injectionTime:WKUserScriptInjectionTimeAtDocumentStart
-                                                   forMainFrameOnly:YES];
-    [self.browserView.configuration.userContentController addUserScript:userScript];
+    [self injectJavaScript:self.bridgeScript];
+    [self setOverlayVideoRenderingEnabled:YES];
 
     [self.browserView.configuration.userContentController addScriptMessageHandler:self name:@"owr"];
 }
