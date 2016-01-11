@@ -62,6 +62,7 @@
 - (void)startGetCaptureSourcesForAudio:(BOOL)audio video:(BOOL)video;
 - (void)initiateCall;
 - (void)terminateCall;
+- (void)enableTrickleICE;
 
 - (void)handleOfferReceived:(NSString *)offer;
 - (void)handleAnswerReceived:(NSString *)answer;
