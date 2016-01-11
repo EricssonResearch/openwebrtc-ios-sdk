@@ -68,6 +68,7 @@ static OpenWebRTCNativeHandler *staticSelf;
 @property (nonatomic, strong) NSMutableArray *helperServers;
 @property (nonatomic, strong) NSMutableArray *remoteCandidatesCache;
 @property (nonatomic, strong) NSMutableArray *localSourceArray;
+@property (nonatomic, assign) BOOL is_trickleICE_enabled;
 
 @end
 
@@ -168,6 +169,11 @@ static OpenWebRTCNativeHandler *staticSelf;
         owr_window_registry_unregister(owr_window_registry_get(), REMOTE_VIEW_TAG);
         _remoteView = nil;
     }
+}
+
+- (void)enableTrickleICE
+{
+    _is_trickleICE_enabled = YES;
 }
 
 - (void)addSTUNServerWithAddress:(NSString *)address port:(NSInteger)port
@@ -1056,6 +1062,7 @@ static void send_offer()
         g_list_free(candidates);
 
         ice[@"candidates"] = candidatesArray;
+        ice[@"iceOptions"] = @{@"trickle":[NSNumber numberWithBool:staticSelf.is_trickleICE_enabled]};
         mediaDescription[@"ice"] = ice;
 
         NSMutableDictionary *dtls = [NSMutableDictionary dictionary];
@@ -1069,9 +1076,7 @@ static void send_offer()
         g_free(fingerprint);
         g_free(ice_password);
         g_free(ice_ufrag);
-        //g_free(encoding_name);
-        //g_free(media_type);
-
+        
         [mediaDescriptions addObject:mediaDescription];
     }
     
