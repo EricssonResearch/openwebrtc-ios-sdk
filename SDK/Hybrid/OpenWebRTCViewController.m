@@ -162,4 +162,12 @@
     [self.browserView loadRequest:request];
 }
 
+- (void)webView:(WKWebView *)webView didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge
+completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential * _Nullable))completionHandler
+{
+    NSURLCredential *cre = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
+    [challenge.sender useCredential:cre forAuthenticationChallenge:challenge];
+    completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, cre);
+}
+
 @end
