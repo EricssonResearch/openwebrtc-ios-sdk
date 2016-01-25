@@ -68,7 +68,7 @@ static OpenWebRTCNativeHandler *staticSelf;
 @property (nonatomic, strong) NSMutableArray *helperServers;
 @property (nonatomic, strong) NSMutableArray *remoteCandidatesCache;
 @property (nonatomic, strong) NSMutableArray *localSourceArray;
-@property (nonatomic, assign) BOOL is_trickleICE_enabled;
+@property (nonatomic, assign) BOOL isTrickleICEEnabled;
 
 @end
 
@@ -173,7 +173,7 @@ static OpenWebRTCNativeHandler *staticSelf;
 
 - (void)enableTrickleICE
 {
-    _is_trickleICE_enabled = YES;
+    _isTrickleICEEnabled = YES;
 }
 
 - (void)addSTUNServerWithAddress:(NSString *)address port:(NSInteger)port
@@ -1062,7 +1062,7 @@ static void send_offer()
         g_list_free(candidates);
 
         ice[@"candidates"] = candidatesArray;
-        ice[@"iceOptions"] = @{@"trickle":[NSNumber numberWithBool:staticSelf.is_trickleICE_enabled]};
+        ice[@"iceOptions"] = @{@"trickle":[NSNumber numberWithBool:staticSelf.isTrickleICEEnabled]};
         mediaDescription[@"ice"] = ice;
 
         NSMutableDictionary *dtls = [NSMutableDictionary dictionary];
