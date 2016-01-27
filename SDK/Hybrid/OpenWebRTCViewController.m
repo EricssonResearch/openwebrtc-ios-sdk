@@ -166,8 +166,67 @@
 completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential * _Nullable))completionHandler
 {
     NSURLCredential *cre = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
-    [challenge.sender useCredential:cre forAuthenticationChallenge:challenge];
-    completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, cre);
+
+    NSLog(@"didReceiveAuthenticationChallenge: %@", challenge.protectionSpace.authenticationMethod);
+
+    if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodHTTPBasic]) {
+        if ([challenge previousFailureCount] == 0) {
+            NSLog(@"[OpenWebRTC] Received authentication challenge");
+
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Authentication required"
+                                                                           message:@"Please enter credentials"
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
+
+            UIAlertAction *ok = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
+                                                       handler:^(UIAlertAction * action) {
+                                                           NSURLCredential *newCredential = [NSURLCredential credentialWithUser:alert.textFields[0].text
+                                                                                                                       password:alert.textFields[1].text
+                                                                                                                    persistence:NSURLCredentialPersistencePermanent];
+                                                           [challenge.sender useCredential:newCredential forAuthenticationChallenge:challenge];
+                                                           completionHandler(NSURLSessionAuthChallengeUseCredential, newCredential);
+
+                                                           [alert dismissViewControllerAnimated:YES completion:nil];
+                                                           NSLog(@"[OpenWebRTC] Responded to authentication challenge");
+                                                       }];
+            UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleDefault
+                                                           handler:^(UIAlertAction * action) {
+                                                               [challenge.sender useCredential:cre forAuthenticationChallenge:challenge];
+                                                               completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, cre);
+
+                                                               [alert dismissViewControllerAnimated:YES completion:nil];
+                                                               NSLog(@"[OpenWebRTC] User canceled auth challenge");
+                                                           }];
+            [alert addAction:ok];
+            [alert addAction:cancel];
+
+            [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+                textField.placeholder = @"Username";
+            }];
+            [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+                textField.placeholder = @"Password";
+                textField.secureTextEntry = YES;
+            }];
+
+            [self presentViewController:alert animated:YES completion:nil];
+        } else {
+            NSLog(@"[OpenWebRTC] Previous authentication failure");
+
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Authentication failed"
+                                                                           message:@"Please check your credentials"
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
+
+            UIAlertAction *ok = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
+                                                       handler:^(UIAlertAction * action) {
+                                                           [challenge.sender useCredential:cre forAuthenticationChallenge:challenge];
+                                                           completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, cre);
+                                                       }];
+            [alert addAction:ok];
+            [self presentViewController:alert animated:YES completion:nil];
+        }
+    } else {
+        [challenge.sender useCredential:cre forAuthenticationChallenge:challenge];
+        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, cre);
+    }
 }
 
 @end
