@@ -42,6 +42,7 @@
 - (void)setOverlayVideoRenderingEnabled:(BOOL)isEnabled;
 - (BOOL)isOverlayVideoRenderingEnabled;
 - (void)loadRequestWithURL:(NSString *)url;
+- (void)injectJavaScript:(NSString *)script;
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message;
 
 @end
