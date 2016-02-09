@@ -68,17 +68,67 @@
             UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Alert!"
                                                                            message:message
                                                                     preferredStyle:UIAlertControllerStyleAlert];
-
-            UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK"
-                                                               style:UIAlertActionStyleDefault
-                                                             handler:^(UIAlertAction * action) {
-                                                                 completionHandler();
-                                                             }];
-            [alert addAction:okAction];
+            [alert addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                      style:UIAlertActionStyleDefault
+                                                    handler:^(UIAlertAction * action) {
+                                                        completionHandler();
+                                                    }]];
             [parent presentViewController:alert animated:YES completion:nil];
         } else {
             completionHandler();
         }
+    }
+}
+
+- (void)webView:(WKWebView *)webView runJavaScriptConfirmPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(BOOL))completionHandler {
+
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:webView.URL.host
+                                                                             message:message
+                                                                      preferredStyle:UIAlertControllerStyleAlert];
+    [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                        style:UIAlertActionStyleDefault
+                                                      handler:^(UIAlertAction *action) {
+        completionHandler(YES);
+    }]];
+    [alertController addAction:[UIAlertAction actionWithTitle:@"Cancel"
+                                                        style:UIAlertActionStyleCancel
+                                                      handler:^(UIAlertAction *action) {
+        completionHandler(NO);
+    }]];
+
+    [self maybePresentAlert:alertController];
+}
+
+- (void)webView:(WKWebView *)webView runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSString *))completionHandler {
+
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:prompt
+                                                                             message:webView.URL.host
+                                                                      preferredStyle:UIAlertControllerStyleAlert];
+    [alertController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+        textField.text = defaultText;
+    }];
+
+    [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                        style:UIAlertActionStyleDefault
+                                                      handler:^(UIAlertAction *action) {
+        NSString *input = ((UITextField *)alertController.textFields.firstObject).text;
+        completionHandler(input);
+    }]];
+
+    [alertController addAction:[UIAlertAction actionWithTitle:@"Cancel"
+                                                        style:UIAlertActionStyleCancel
+                                                      handler:^(UIAlertAction *action) {
+        completionHandler(nil);
+    }]];
+
+    [self maybePresentAlert:alertController];
+}
+
+- (void)maybePresentAlert:(UIAlertController *)alertController
+{
+    if ([self.owrDelegate isKindOfClass:[UIViewController class]]) {
+        UIViewController *parent = (UIViewController *)self.owrDelegate;
+        [parent presentViewController:alertController animated:YES completion:nil];
     }
 }
 
