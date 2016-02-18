@@ -26,6 +26,8 @@
 //  OF SUCH DAMAGE.
 //
 
+@import Foundation;
+
 #import "OpenWebRTCUtils.h"
 
 @import JavaScriptCore;

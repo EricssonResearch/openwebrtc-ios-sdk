@@ -1,7 +1,7 @@
 //
-//  OpenWebRTCSettings.m
+//  OpenWebRTCLocalAudioSource.m
 //
-//  Copyright (c) 2015, Ericsson AB.
+//  Copyright (c) 2016, Ericsson AB.
 //  All rights reserved.
 //
 //  Redistribution and use in source and binary forms, with or without modification,
@@ -26,26 +26,51 @@
 //  OF SUCH DAMAGE.
 //
 
-#import "OpenWebRTCSettings.h"
+@import Foundation;
 
-@implementation OpenWebRTCSettings
+#include "glib-object.h"
+#include "OpenWebRTCLocalAudioSource.h"
 
-- (instancetype)init
+@interface OpenWebRTCLocalAudioSource ()
 {
-    return [self initWithDefaults];
+    OwrLocalMediaSource *_mediaSource;
+}
+@end
+
+@implementation OpenWebRTCLocalAudioSource
+
+#pragma mark - Public methods
+
+- (instancetype)initWithLocalMediaSource:(OwrLocalMediaSource *)mediaSource {
+    if (self = [super init]) {
+        _mediaSource = mediaSource;
+        g_object_ref(mediaSource);
+    }
+    
+    return self;
 }
 
-- (instancetype)initWithDefaults
-{
-    if (self = [super init]) {
-        _videoWidth = kOpenWebRTCSettingsDefaultVideoWidth;
-        _videoHeight = kOpenWebRTCSettingsDefaultVideoHeight;
-        _videoFramerate = kOpenWebRTCSettingsDefaultVideoFramerate;
-        _videoBitrate = kOpenWebRTCSettingsDefaultVideoBitrate;
-        _audioBitrate = kOpenWebRTCSettingsDefaultAudioBitrate;
-        _audioChannels = kOpenWebRTCSettingsDefaultAudioChannels;
-    }
-    return self;
+- (void)getValue:(void *)value {
+    *((void **)value) = _mediaSource;
+}
+
+- (const char *)objCType {
+    return @encode(OwrLocalMediaSource *);
+}
+
+- (void)dealloc {
+    g_object_unref(_mediaSource);
+    _mediaSource = nil;
+}
+
+- (double)volume {
+    double volume;
+    g_object_get(_mediaSource, "volume", &volume, NULL);
+    return volume;
+}
+
+- (void)setVolume:(double)localSourceVolume {
+    g_object_set(_mediaSource, "volume", localSourceVolume, NULL);
 }
 
 @end
