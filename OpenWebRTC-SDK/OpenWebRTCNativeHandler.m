@@ -26,6 +26,9 @@
 //  OF SUCH DAMAGE.
 //
 
+@import Foundation;
+
+#import "OpenWebRTCLocalAudioSource.h"
 #import "OpenWebRTCNativeHandler.h"
 #import "OpenWebRTCUtils.h"
 
@@ -36,6 +39,7 @@
 #include "owr_audio_payload.h"
 #include "owr_audio_renderer.h"
 #include "owr_media_session.h"
+#include "owr_local_media_source.h"
 #include "owr_transport_agent.h"
 #include "owr_video_payload.h"
 #include "owr_video_renderer.h"
@@ -1145,23 +1149,32 @@ static void got_local_sources(GList *sources)
         OwrMediaSource *source = NULL;
         OwrMediaType media_type;
         OwrMediaType source_type;
+        NSValue *source_value;
+        NSString *media_type_name;
 
         source = sources->data;
         g_assert(OWR_IS_MEDIA_SOURCE(source));
 
         g_object_get(source, "name", &name, "type", &source_type, "media-type", &media_type, NULL);
+        
+        if (media_type == OWR_MEDIA_TYPE_AUDIO) {
+            source_value = [[OpenWebRTCLocalAudioSource alloc] initWithLocalMediaSource:OWR_LOCAL_MEDIA_SOURCE(source)];
+            media_type_name = @"audio";
+        } else {
+            /* We ref the sources because we want them to stay around. On iOS they will never be
+             * unplugged, I expect, but it's safer this way. */
+            g_object_ref(source);
+            source_value = [NSValue valueWithPointer:source];
+            media_type_name = @"video";
+        }
 
-        /* We ref the sources because we want them to stay around. On iOS they will never be
-         * unplugged, I expect, but it's safer this way. */
-        g_object_ref(source);
-
-        g_print("[%s/%s] %s\n", media_type == OWR_MEDIA_TYPE_AUDIO ? "audio" : "video",
+        g_print("[%s/%s] %s\n", media_type_name,
                 source_type == OWR_SOURCE_TYPE_CAPTURE ? "capture" : source_type == OWR_SOURCE_TYPE_TEST ? "test" : "unknown",
                 name);
 
         [staticSelf.localSourceArray addObject:@{@"name": [NSString stringWithUTF8String:name],
-                                 @"source": [NSValue valueWithPointer:source],
-                                 @"mediaType": media_type == OWR_MEDIA_TYPE_AUDIO ? @"audio" : @"video"
+                                 @"source": source_value,
+                                 @"mediaType": media_type_name
                                  }];
 
         if (!have_video && media_type == OWR_MEDIA_TYPE_VIDEO && source_type == OWR_SOURCE_TYPE_CAPTURE) {

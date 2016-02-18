@@ -1,5 +1,5 @@
 //
-//  OpenWebRTC.h
+//  OpenWebRTCSettings.m
 //
 //  Copyright (c) 2015, Ericsson AB.
 //  All rights reserved.
@@ -26,21 +26,28 @@
 //  OF SUCH DAMAGE.
 //
 
-#import <UIKit/UIKit.h>
+@import Foundation;
 
-#import <OpenWebRTC-SDK/OpenWebRTCVideoView.h>
-#import <OpenWebRTC-SDK/OpenWebRTCUtils.h>
-#import <OpenWebRTC-SDK/OpenWebRTCSettings.h>
-#import <OpenWebRTC-SDK/OpenWebRTCNativeHandler.h>
+#import "OpenWebRTCSettings.h"
 
-#import "owr.h"
+@implementation OpenWebRTCSettings
 
-@interface OpenWebRTC : NSObject
+- (instancetype)init
+{
+    return [self initWithDefaults];
+}
 
-/**
- *  Initializes OpenWebRTC. Should preferably be run inside your AppDelegate's 
- *  initialize method to ensure OpenWebRTC has enough time to set things up.
- */
-+ (void)initialize;
+- (instancetype)initWithDefaults
+{
+    if (self = [super init]) {
+        _videoWidth = kOpenWebRTCSettingsDefaultVideoWidth;
+        _videoHeight = kOpenWebRTCSettingsDefaultVideoHeight;
+        _videoFramerate = kOpenWebRTCSettingsDefaultVideoFramerate;
+        _videoBitrate = kOpenWebRTCSettingsDefaultVideoBitrate;
+        _audioBitrate = kOpenWebRTCSettingsDefaultAudioBitrate;
+        _audioChannels = kOpenWebRTCSettingsDefaultAudioChannels;
+    }
+    return self;
+}
 
 @end

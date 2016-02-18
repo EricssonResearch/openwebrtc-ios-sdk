@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
     :git => "https://github.com/EricssonResearch/openwebrtc-ios-sdk.git",
     :tag => "0.4"
   }
-  s.source_files = "SDK/**/*.{h,m}"
+  s.source_files = "OpenWebRTC-SDK/**/*.{h,m}"
   s.resources = "Resources/**"
   s.dependency 'OpenWebRTC'
   #s.resource = { :http => "https://github.com/EricssonResearch/openwebrtc/blob/master/bridge/client/sdp.js" }
