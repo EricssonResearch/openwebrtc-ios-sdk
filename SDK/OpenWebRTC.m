@@ -38,7 +38,7 @@
     return nil;
 }
 
-+ (void)initialize
++ (void)initOpenWebRTC
 {
     if (self == [OpenWebRTC class]) {
         static BOOL isInitialized = NO;

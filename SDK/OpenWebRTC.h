@@ -37,4 +37,10 @@
 
 @interface OpenWebRTC : NSObject
 
+/**
+ *  Initializes OpenWebRTC. Should preferably be run inside your AppDelegate's 
+ *  initialize method to ensure OpenWebRTC has enough time to set things up.
+ */
++ (void)initOpenWebRTC;
+
 @end
