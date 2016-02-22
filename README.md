@@ -90,14 +90,4 @@ The entry point class for Native app developement is `OpenWebRTCNativeHandler`:
 ```
 
 ## Change log
-#### 0.3
-New APIs for:
-* Setting video capture device (camera)
-* Setting and getting video rotation per video view
-* Setting mirroring per video view
-
-#### 0.2.1
-* Minor changes to view handling for hybrid apps
-
-#### 0.2.0
-* Added classes for Hybrid (mixed native and WebView) app development
+See https://github.com/EricssonResearch/openwebrtc-ios-sdk/releases
