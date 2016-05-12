@@ -211,10 +211,13 @@ static OpenWebRTCNativeHandler *staticSelf;
     reset();
 }
 
-- (void)handleAnswerReceived:(NSString *)answer
+- (void)handleAnswerReceived:(NSDictionary *)answer
 {
-    NSDictionary *sdp = [OpenWebRTCUtils parseSDPFromString:answer];
-    NSLog(@"Parsed Answer SDP: %@", sdp);
+    NSDictionary *sdp = answer[@"sessionDescription"];
+    if (!sdp)
+        sdp = [OpenWebRTCUtils parseSDPFromString:answer[@"sdp"]];
+
+    NSLog(@"Answer SDP: %@", sdp);
 
     const gchar *mtype;
     OwrMediaType media_type = OWR_MEDIA_TYPE_UNKNOWN;
@@ -353,13 +356,16 @@ static OpenWebRTCNativeHandler *staticSelf;
     return _remoteCandidatesCache;
 }
 
-- (void)handleOfferReceived:(NSString *)offer
+- (void)handleOfferReceived:(NSDictionary *)offer
 {
     is_answering = TRUE;
     is_offering = FALSE;
 
-    NSDictionary *sdp = [OpenWebRTCUtils parseSDPFromString:offer];
-    NSLog(@"Parsed Offer SDP: %@", sdp);
+    NSDictionary *sdp = offer[@"sessionDescription"];
+    if (!sdp)
+        sdp = [OpenWebRTCUtils parseSDPFromString:offer[@"sdp"]];
+
+    NSLog(@"Offer SDP: %@", sdp);
 
     const gchar *mtype;
     OwrMediaType media_type = OWR_MEDIA_TYPE_UNKNOWN;
