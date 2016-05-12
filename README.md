@@ -77,8 +77,8 @@ The entry point class for Native app developement is `OpenWebRTCNativeHandler`:
 - (void)initiateCall;
 - (void)terminateCall;
 
-- (void)handleOfferReceived:(NSString *)offer;
-- (void)handleAnswerReceived:(NSString *)answer;
+- (void)handleOfferReceived:(NSDictionary *)offer;
+- (void)handleAnswerReceived:(NSDictionary *)answer;
 - (void)handleRemoteCandidateReceived:(NSDictionary *)candidate;
 
 - (void)setVideoCaptureSourceByName:(NSString *)name;
