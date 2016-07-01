@@ -562,16 +562,21 @@ static OpenWebRTCNativeHandler *staticSelf;
     return remote_candidate;
 }
 
+NSDictionary *
+candidate_description_form_sdp_string (NSString *candidate)
+{
+    NSString *fakeSDP = [NSString stringWithFormat:@"m=application 0 NONE\r\na=%@\r\n", candidate];
+    NSDictionary *candidateInfo = [OpenWebRTCUtils parseSDPFromString:fakeSDP];
+    return candidateInfo[@"mediaDescriptions"][0][@"ice"][@"candidates"][0];
+}
+
 - (void)handleRemoteCandidateReceived:(NSDictionary *)remoteCandidate
 {
     NSMutableDictionary *candidate = [NSMutableDictionary dictionaryWithDictionary:remoteCandidate];
 
-    if (!candidate[@"candidateDescription"]) {
-        NSString *fakeSDP = [NSString stringWithFormat:@"m=application 0 NONE\r\na=%@\r\n", candidate[@"candidate"]];
-        NSDictionary *candidateInfo = [OpenWebRTCUtils parseSDPFromString:fakeSDP];
-        NSDictionary *candidateDescription = candidateInfo[@"mediaDescriptions"][0][@"ice"][@"candidates"][0];
-        candidate[@"candidateDescription"] = candidateDescription;
-    }
+    if (!candidate[@"candidateDescription"])
+        candidate[@"candidateDescription"] = \
+            candidate_description_form_sdp_string (candidate[@"candidate"]);
 
     if (candidate && candidate[@"candidateDescription"]) {
         gint index;
