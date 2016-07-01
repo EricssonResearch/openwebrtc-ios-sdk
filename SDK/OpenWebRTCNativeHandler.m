@@ -855,7 +855,45 @@ static void send_offer()
     }
 }
 
-+ (NSString *)generateAnswerSDP
+NSDictionary *
+candidate_description_from_owr_candidate (OwrCandidate *candidate)
+{
+    OwrCandidateType candidate_type;
+    OwrComponentType component_type;
+    OwrTransportType transport_type;
+    gchar *foundation, *address, *related_address;
+    gint port, priority, related_port;
+
+    g_object_get(candidate, "type", &candidate_type, "component-type", &component_type,
+        "foundation", &foundation, "transport-type", &transport_type, "address", &address,
+        "port", &port, "priority", &priority, "base-address", &related_address,
+        "base-port", &related_port, NULL);
+
+    NSMutableDictionary *currentCandidate = [NSMutableDictionary dictionary];
+    currentCandidate[@"foundation"] = [NSString stringWithUTF8String:foundation];
+    currentCandidate[@"componentId"] = [NSNumber numberWithInt:component_type];
+    currentCandidate[@"transport"] = transport_type == OWR_TRANSPORT_TYPE_UDP ? @"UDP" : @"TCP";
+    currentCandidate[@"priority"] = [NSNumber numberWithInt:priority];
+    currentCandidate[@"address"] = [NSString stringWithUTF8String:address];
+    currentCandidate[@"port"] = [NSNumber numberWithInt:port];
+    currentCandidate[@"type"] = [NSString stringWithUTF8String:candidate_types[candidate_type]];
+
+    if (candidate_type != OWR_CANDIDATE_TYPE_HOST) {
+        currentCandidate[@"relatedAddress"] = [NSString stringWithUTF8String:related_address];
+        currentCandidate[@"relatedPort"] = [NSNumber numberWithInt:related_port];
+    }
+    if (transport_type != OWR_TRANSPORT_TYPE_UDP) {
+        currentCandidate[@"tcpType"] = [NSString stringWithUTF8String:tcp_types[transport_type]];
+    }
+
+    g_free(foundation);
+    g_free(address);
+    g_free(related_address);
+
+    return currentCandidate;
+}
+
++ (NSDictionary *)generateAnswerSDP
 {
     GList *media_sessions, *item;
     GObject *media_session;
@@ -930,39 +968,10 @@ static void send_offer()
 
         NSMutableArray *candidatesArray = [NSMutableArray array];
         for (list_item = candidates; list_item; list_item = list_item->next) {
-            OwrCandidateType candidate_type;
-            OwrComponentType component_type;
-            OwrTransportType transport_type;
-            gchar *foundation, *address, *related_address;
-            gint port, priority, related_port;
             candidate = OWR_CANDIDATE(list_item->data);
-            g_object_get(candidate, "type", &candidate_type, "component-type", &component_type,
-                         "foundation", &foundation, "transport-type", &transport_type, "address", &address,
-                         "port", &port, "priority", &priority, "base-address", &related_address,
-                         "base-port", &related_port, NULL);
-
-            NSMutableDictionary *currentCandidate = [NSMutableDictionary dictionary];
-            currentCandidate[@"foundation"] = [NSString stringWithUTF8String:foundation];
-            currentCandidate[@"componentId"] = [NSNumber numberWithInt:component_type];
-            currentCandidate[@"transport"] = transport_type == OWR_TRANSPORT_TYPE_UDP ? @"UDP" : @"TCP";
-            currentCandidate[@"priority"] = [NSNumber numberWithInt:priority];
-            currentCandidate[@"address"] = [NSString stringWithUTF8String:address];
-            currentCandidate[@"port"] = [NSNumber numberWithInt:port];
-            currentCandidate[@"type"] = [NSString stringWithUTF8String:candidate_types[candidate_type]];
-
-            if (candidate_type != OWR_CANDIDATE_TYPE_HOST) {
-                currentCandidate[@"relatedAddress"] = [NSString stringWithUTF8String:related_address];
-                currentCandidate[@"relatedPort"] = [NSNumber numberWithInt:related_port];
-            }
-            if (transport_type != OWR_TRANSPORT_TYPE_UDP) {
-                currentCandidate[@"tcpType"] = [NSString stringWithUTF8String:tcp_types[transport_type]];
-            }
-
-            g_free(foundation);
-            g_free(address);
-            g_free(related_address);
-
-            [candidatesArray addObject:currentCandidate];
+            NSDictionary *candidateDescription = \
+                candidate_description_from_owr_candidate (candidate);
+            [candidatesArray addObject:candidateDescription];
         }
         g_list_free(candidates);
 
@@ -1031,38 +1040,9 @@ static void send_offer()
 
         NSMutableArray *candidatesArray = [NSMutableArray array];
         for (list_item = candidates; list_item; list_item = list_item->next) {
-            OwrCandidateType candidate_type;
-            OwrComponentType component_type;
-            OwrTransportType transport_type;
-            gchar *foundation, *address, *related_address;
-            gint port, priority, related_port;
             candidate = OWR_CANDIDATE(list_item->data);
-            g_object_get(candidate, "type", &candidate_type, "component-type", &component_type,
-                         "foundation", &foundation, "transport-type", &transport_type, "address", &address,
-                         "port", &port, "priority", &priority, "base-address", &related_address,
-                         "base-port", &related_port, NULL);
-
-            NSMutableDictionary *currentCandidate = [NSMutableDictionary dictionary];
-            currentCandidate[@"foundation"] = [NSString stringWithUTF8String:foundation];
-            currentCandidate[@"componentId"] = [NSNumber numberWithInt:component_type];
-            currentCandidate[@"transport"] = transport_type == OWR_TRANSPORT_TYPE_UDP ? @"UDP" : @"TCP";
-            currentCandidate[@"priority"] = [NSNumber numberWithInt:priority];
-            currentCandidate[@"address"] = [NSString stringWithUTF8String:address];
-            currentCandidate[@"port"] = [NSNumber numberWithInt:port];
-            currentCandidate[@"type"] = [NSString stringWithUTF8String:candidate_types[candidate_type]];
-
-            if (candidate_type != OWR_CANDIDATE_TYPE_HOST) {
-                currentCandidate[@"relatedAddress"] = [NSString stringWithUTF8String:related_address];
-                currentCandidate[@"relatedPort"] = [NSNumber numberWithInt:related_port];
-            }
-            if (transport_type != OWR_TRANSPORT_TYPE_UDP) {
-                currentCandidate[@"tcpType"] = [NSString stringWithUTF8String:tcp_types[transport_type]];
-            }
-
-            g_free(foundation);
-            g_free(address);
-            g_free(related_address);
-
+            NSDictionary *currentCandidate = \
+                candidate_description_from_owr_candidate (candidate);
             [candidatesArray addObject:currentCandidate];
         }
         g_list_free(candidates);
