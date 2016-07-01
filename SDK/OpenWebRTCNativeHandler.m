@@ -702,7 +702,7 @@ static gboolean should_send_answer()
 static gboolean can_send_offer()
 {
     NSLog(@">>>>>>>>>>>>>>>>>>>>>>>>>> can_send_offer");
-    GObject *media_session;
+    GObject *media_session = NULL;
     GList *media_sessions, *item;
 
     media_sessions = g_object_get_data(G_OBJECT(transport_agent), "media-sessions");
