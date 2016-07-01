@@ -738,7 +738,7 @@ static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpoin
     local_candidates = g_object_get_data(media_session, "local-candidates");
     local_candidates = g_list_append(local_candidates, candidate);
     g_object_set_data(media_session, "local-candidates", local_candidates);
-    
+
     OwrCandidateType candidate_type;
     OwrComponentType component_type;
     OwrTransportType transport_type;
@@ -756,20 +756,23 @@ static void got_candidate(GObject *media_session, OwrCandidate *candidate, gpoin
                                  [NSString stringWithUTF8String:address],
                                  [NSNumber numberWithInt:port],
                                  [NSString stringWithUTF8String:candidate_types[candidate_type]]];
-    
+
     if (candidate_type != OWR_CANDIDATE_TYPE_HOST) {
         candidateString = [candidateString stringByAppendingString:[NSString stringWithFormat:@" raddr %@ rport %@", [NSString stringWithUTF8String:related_address], [NSNumber numberWithInt:related_port]]];
     }
     if (transport_type != OWR_TRANSPORT_TYPE_UDP) {
         candidateString = [candidateString stringByAppendingString:[NSString stringWithFormat:@" tcptype %@", [NSString stringWithUTF8String:tcp_types[transport_type]]]];
     }
-    
+
     g_free(foundation);
     g_free(address);
     g_free(related_address);
 
+    NSDictionary *cand = @{@"candidate": candidateString,
+                           @"candidateDescription": \
+                                candidate_description_form_sdp_string (candidateString)};
     if (staticSelf.delegate) {
-        [staticSelf.delegate candidateGenerate:candidateString];
+        [staticSelf.delegate candidateGenerated:cand];
     }
 }
 
@@ -842,8 +845,10 @@ static void got_dtls_certificate(GObject *media_session, GParamSpec *pspec, gpoi
 
 static void send_answer()
 {
-    NSString *sdpString = [OpenWebRTCNativeHandler generateAnswerSDP];
-    NSDictionary *answer = @{@"sdp": sdpString, @"type": @"answer"};
+    NSDictionary *sdp = [OpenWebRTCNativeHandler generateAnswer];
+    NSDictionary *answer = @{@"sessionDescription": sdp,
+                             @"sdp": [OpenWebRTCUtils generateSDPFromObject:sdp],
+                             @"type": @"answer"};
 
     if (staticSelf.delegate) {
         [staticSelf.delegate answerGenerated:answer];
@@ -852,8 +857,10 @@ static void send_answer()
 
 static void send_offer()
 {
-    NSString *sdpString = [OpenWebRTCNativeHandler generateOfferSDP];
-    NSDictionary *offer = @{@"sdp": sdpString, @"type": @"offer"};
+    NSDictionary *sdp = [OpenWebRTCNativeHandler generateOffer];
+    NSDictionary *offer = @{@"sessionDescription": sdp,
+                            @"sdp": [OpenWebRTCUtils generateSDPFromObject:sdp],
+                            @"type": @"offer"};
 
     if (staticSelf.delegate) {
         [staticSelf.delegate offerGenerated:offer];
@@ -898,7 +905,7 @@ candidate_description_from_owr_candidate (OwrCandidate *candidate)
     return currentCandidate;
 }
 
-+ (NSDictionary *)generateAnswerSDP
++ (NSDictionary *)generateAnswer
 {
     GList *media_sessions, *item;
     GObject *media_session;
@@ -996,16 +1003,15 @@ candidate_description_from_owr_candidate (OwrCandidate *candidate)
         g_free(ice_ufrag);
         g_free(encoding_name);
         //g_free(media_type);
-        
+
         [mediaDescriptions addObject:mediaDescription];
     }
-    
+
     sdp[@"mediaDescriptions"] = mediaDescriptions;
-    
-    return [OpenWebRTCUtils generateSDPFromObject:sdp];
+    return sdp;
 }
 
-+ (NSString *)generateOfferSDP
++ (NSDictionary *)generateOffer
 {
     GList *media_sessions, *item;
     GObject *media_session;
@@ -1067,13 +1073,13 @@ candidate_description_from_owr_candidate (OwrCandidate *candidate)
         g_free(fingerprint);
         g_free(ice_password);
         g_free(ice_ufrag);
-        
+
         [mediaDescriptions addObject:mediaDescription];
     }
-    
+
     sdp[@"mediaDescriptions"] = mediaDescriptions;
-    
-    return [OpenWebRTCUtils generateSDPFromObject:sdp];
+
+    return sdp;
 }
 
 

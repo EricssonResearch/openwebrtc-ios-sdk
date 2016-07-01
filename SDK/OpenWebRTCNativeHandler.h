@@ -34,7 +34,7 @@
 
 - (void)answerGenerated:(NSDictionary *)answer;
 - (void)offerGenerated:(NSDictionary *)offer;
-- (void)candidateGenerate:(NSString *)candidate;
+- (void)candidateGenerated:(NSDictionary *)candidate;
 
 /**
  * Format of sources:
